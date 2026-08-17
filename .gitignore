@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+
+# Ambiente
+.env
+.venv
+venv/
+env/
+
+# Secrets Streamlit
+.streamlit/secrets.toml
+
+# Logs
+*.log
+*.log.*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Cache e dados regeneraveis (NAO versionar - sao recriados pelo cron)
+cache/*.json
+cache/*.csv
+cache/*.log
+
+# Excepcao: guardar configuracoes do crawler
+!cache/.gitkeep
+
+# Cloudflared (binario 52MB - nao precisa de estar no repo)
+cloudflared.exe
+cloudflared
+*.tunnel.log
+tunnel.log
+
+# Coverage
+.coverage
+htmlcov/
