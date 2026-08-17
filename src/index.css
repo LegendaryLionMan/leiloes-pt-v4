@@ -23,3 +23,16 @@ html, body {
 #root {
   min-height: 100vh;
 }
+
+/* Recharts SVG elements default to fill="black" otherwise on dark backgrounds.
+   Force explicit fills so chart shapes are always visible. */
+.recharts-pie-sector,
+.recharts-bar-rectangle,
+.recharts-line {
+  fill: #0F766E !important;
+  stroke: #0F766E !important;
+}
+.recharts-line-curve {
+  fill: none !important;
+  stroke-width: 2;
+}

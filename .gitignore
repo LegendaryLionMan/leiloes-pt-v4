@@ -21,4 +21,11 @@ vendor/leiloes-pt-data/data/cache/
 
 # IDE
 .vscode/
-.idea/
+.idea/# Dev-only
+screenshots/
+test-results/
+playwright-report/
+backend.log
+main.py.bak
+# Vendored cache (large)
+vendor/leiloes-pt-data/cache/
