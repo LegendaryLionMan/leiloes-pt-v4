@@ -132,8 +132,8 @@ def _carregar_reais_safe():
             ),
             "modalidade": "Leilão Online" if it.get("modalidadeId") == 1 else "Negociação Particular",
             "fonte": "E-LEILÕES",
-            "link": f"https://www.e-leiloes.pt/eventos/{(it.get('referencia', '') or '').lower()}",
-            "lance_atual": float(it.get("lanceAtual", 0) or 0),
+            "link": f"/leilao/{it.get('id')}",  # Self-hosted detail page (e-leilões SPA doesn't accept deep links)
+                        "lance_atual": float(it.get("lanceAtual", 0) or 0),
             "foto": "",
         }
         if n["valor_minimo"] <= 0:

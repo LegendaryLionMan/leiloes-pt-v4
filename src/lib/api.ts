@@ -204,6 +204,23 @@ export async function fetchAlertMatches(id: string): Promise<{ alert: Alert; mat
   return data;
 }
 
+export async function fetchMapaDistritos(): Promise<{
+  count: number;
+  items: { distrito: string; lat: number; lon: number; total: number; valor_minimo_total: number; poupanca_total: number; desconto_medio_pct: number }[];
+}> {
+  const { data } = await api.get('mapa/distritos');
+  return data;
+}
+
+export async function fetchMapaConcelhos(distrito?: string): Promise<{
+  count: number;
+  items: { concelho: string; distrito: string; lat: number; lon: number; total: number; valor_minimo_total: number; poupanca_total: number; desconto_medio_pct: number }[];
+}> {
+  const qs = distrito ? `?distrito=${encodeURIComponent(distrito)}` : '';
+  const { data } = await api.get(`mapa/concelhos${qs}`);
+  return data;
+}
+
 export function csvExportUrl(f: FilterParams = {}): string {
   return `/api/export/leiloes.csv?${paramsFrom(f)}`;
 }

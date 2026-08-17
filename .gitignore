@@ -29,3 +29,6 @@ backend.log
 main.py.bak
 # Vendored cache (large)
 vendor/leiloes-pt-data/cache/
+
+# Backend logs
+logs/

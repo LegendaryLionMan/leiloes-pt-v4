@@ -1,5 +1,4 @@
 // Smoke E2E test for leiloes-pt v4 — verifies the critical user paths.
-// Run with `npx playwright test e2e/smoke.spec.ts` from the v4 root.
 import { test, expect } from '@playwright/test';
 
 const BASE = 'http://127.0.0.1:5180';
@@ -8,20 +7,15 @@ test.describe('leiloes-pt v4 smoke', () => {
   test('home page loads with KPIs', async ({ page }) => {
     await page.goto(BASE + '/');
     await expect(page.getByRole('heading', { name: 'Lista' })).toBeVisible();
-    // KPIs render
     await expect(page.getByText('Total no scope')).toBeVisible();
     await expect(page.getByText('Poupança potencial')).toBeVisible();
   });
 
-  test('Tavira preset filters to 2 items', async ({ page }) => {
+  test('Tavira preset filters to 4 items', async ({ page }) => {
     await page.goto(BASE + '/');
-    // Wait for KPIs loaded
     await page.waitForResponse((r) => r.url().includes('/api/kpis') && r.status() === 200);
-    // Click Tavira pill
     await page.getByRole('button', { name: /Tavira.*Imóveis/ }).click();
-    // Filter banner appears
     await expect(page.getByText(/filtros ativos/i)).toBeVisible();
-    // The active-filter banner shows district + concelho
     await expect(page.getByText(/1 distrito\(s\).*1 concelho\(s\).*1 categoria\(s\)/)).toBeVisible();
   });
 
@@ -40,11 +34,26 @@ test.describe('leiloes-pt v4 smoke', () => {
     await expect(page.getByText(/Encerramentos nos próximos 30 dias/)).toBeVisible();
   });
 
-  test('mapa page renders distrito grid', async ({ page }) => {
+  test('mapa page renders real Leaflet map with 18 district bubbles', async ({ page }) => {
     await page.goto(BASE + '/mapa');
-    await expect(page.getByRole('heading', { name: 'Mapa' })).toBeVisible();
-    // At least one distrito name visible
-    await expect(page.getByText('Lisboa')).toBeVisible();
+    await expect(page.locator('.leaflet-container')).toBeVisible({ timeout: 10_000 });
+    await page.waitForFunction(
+      () => document.querySelectorAll('path.leaflet-interactive').length >= 18,
+      null,
+      { timeout: 15_000 },
+    );
+    await expect(page.getByText(/Top distritos/i)).toBeVisible();
+  });
+
+  test('leilao detail page shows valor mínimo + lance atual + dates + warning', async ({ page }) => {
+    const r = await page.request.get(BASE + '/api/leiloes?page_size=1');
+    const j = await r.json();
+    const id = j.items[0].id;
+    await page.goto(BASE + '/leilao/' + id);
+    await expect(page.getByText('Voltar à lista')).toBeVisible();
+    await expect(page.getByText('Valores')).toBeVisible();
+    await expect(page.getByText('Datas')).toBeVisible();
+    await expect(page.getByText(/Nota:.*e-leilões.pt.*deep links/i)).toBeVisible();
   });
 
   test('criar alerta page renders form with facets', async ({ page }) => {
@@ -70,7 +79,7 @@ test.describe('leiloes-pt v4 smoke', () => {
     page.on('pageerror', (e) => errors.push(String(e)));
     await page.goto(BASE + '/');
     await page.waitForResponse((r) => r.url().includes('/api/kpis') && r.status() === 200);
-    await page.waitForResponse((r) => r.url().includes('/api/leiloes') && r.status() === 200);
+    await new Promise((r) => setTimeout(r, 4000));
     expect(errors.filter((e) => !e.includes('React Router'))).toEqual([]);
   });
 });

@@ -25,6 +25,8 @@ Endpoints
 - POST /api/alertas/{id}/toggle
 - GET  /api/matches
 - GET  /api/matches/{alert_id}
+- GET  /api/mapa/distritos       (district lat/lon + counts)
+- GET  /api/mapa/concelhos       (concelho lat/lon + counts, optional ?distrito= filter)
 """
 from __future__ import annotations
 
@@ -46,6 +48,7 @@ VENDOR_PATH = Path(__file__).resolve().parent.parent.parent / "vendor" / "leiloe
 sys.path.insert(0, str(VENDOR_PATH))
 
 from data import loader, analytics  # noqa: E402 — vendored
+from data import geo_portugal as geo  # noqa: E402 — vendored
 
 
 # --- SQLite alerts DB (stdlib; no extra dep). Lives next to the cache. ----
@@ -338,6 +341,50 @@ def agg_distrito():
         "count": len(agg),
         "items": [_row_to_json(r) for r in agg.to_dict(orient="records")],
     }
+
+
+@app.get("/api/mapa/distritos")
+def mapa_distritos():
+    """Distritos com lat/lon + counts + poupança — pronto para para o mapa de bolhas Leaflet."""
+    items, df = _load_items()
+    agg = analytics.agregado_por_distrito(df)
+    # Enrich with coordinates
+    out = []
+    for r in agg.to_dict(orient="records"):
+        coords = geo.coord_distrito(r["distrito"])
+        out.append({
+            "distrito": r["distrito"],
+            "lat": coords[0],
+            "lon": coords[1],
+            "total": r.get("total", 0),
+            "valor_minimo_total": r.get("valor_minimo_total", 0),
+            "poupanca_total": r.get("poupanca_total", 0),
+            "desconto_medio_pct": r.get("desconto_medio_pct", 0),
+        })
+    return {"count": len(out), "items": out}
+
+
+@app.get("/api/mapa/concelhos")
+def mapa_concelhos(distrito: Optional[str] = None):
+    """Concelhos com lat/lon + counts — pronto para para o mapa de bolhas Leaflet (drill-down)."""
+    items, df = _load_items()
+    if distrito:
+        df = df[df["distrito"] == distrito]
+    agg = analytics.agregado_por_concelho(df)
+    out = []
+    for r in agg.to_dict(orient="records"):
+        coords = geo.coord_concelho(r["concelho"], r["distrito"])
+        out.append({
+            "concelho": r["concelho"],
+            "distrito": r["distrito"],
+            "lat": coords[0],
+            "lon": coords[1],
+            "total": r.get("total", 0),
+            "valor_minimo_total": r.get("valor_minimo_total", 0),
+            "poupanca_total": r.get("poupanca_total", 0),
+            "desconto_medio_pct": r.get("desconto_medio_pct", 0),
+        })
+    return {"count": len(out), "items": out}
 
 
 @app.get("/api/agregados/concelho")

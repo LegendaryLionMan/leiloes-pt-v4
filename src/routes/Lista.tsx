@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   ChevronDown, ChevronUp, Download, ExternalLink, Filter, ListChecks,
   Search, SlidersHorizontal, Trash2, TrendingDown,
@@ -317,13 +317,16 @@ export default function Lista() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-900 text-left">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Título</th>
-                  <th className="px-4 py-3 font-medium">Cat.</th>
-                  <th className="px-4 py-3 font-medium">Distrito</th>
-                  <th className="px-4 py-3 font-medium">Concelho</th>
-                  <th className="px-4 py-3 font-medium text-right">Valor mín.</th>
-                  <th className="px-4 py-3 font-medium text-right">Poupança</th>
-                  <th className="px-4 py-3 font-medium">Encerr.</th>
+                  <th className="px-3 py-2.5 font-medium">Título</th>
+                  <th className="px-3 py-2.5 font-medium">Cat.</th>
+                  <th className="px-3 py-2.5 font-medium">Distrito</th>
+                  <th className="px-3 py-2.5 font-medium text-right">Valor mín.</th>
+                  <th className="px-3 py-2.5 font-medium text-right">Lance atual</th>
+                  <th className="px-3 py-2.5 font-medium text-right">Avaliação</th>
+                  <th className="px-3 py-2.5 font-medium text-right">Desc. %</th>
+                  <th className="px-3 py-2.5 font-medium text-right">Dias</th>
+                  <th className="px-3 py-2.5 font-medium">Estado</th>
+                  <th className="px-3 py-2.5 font-medium text-right">Abrir</th>
                 </tr>
               </thead>
               <tbody>
@@ -336,24 +339,66 @@ export default function Lista() {
                       density === 'compact' && 'text-sm',
                     )}
                   >
-                    <td className={cx('px-4', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
+                    <td className={cx('px-3', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
                       <span className="mr-2" aria-hidden>{categoryEmoji(it.categoria)}</span>
-                      <span className="line-clamp-2">{it.titulo}</span>
-                    </td>
-                    <td className={cx('px-4 text-slate-600 dark:text-slate-400', density === 'compact' ? 'py-1.5' : 'py-2.5')}>{it.categoria}</td>
-                    <td className={cx('px-4 text-slate-600 dark:text-slate-400', density === 'compact' ? 'py-1.5' : 'py-2.5')}>{it.distrito ?? '—'}</td>
-                    <td className={cx('px-4 text-slate-600 dark:text-slate-400', density === 'compact' ? 'py-1.5' : 'py-2.5')}>{it.concelho ?? '—'}</td>
-                    <td className={cx('px-4 text-right tabular-nums', density === 'compact' ? 'py-1.5' : 'py-2.5')}>{formatEUR(it.valor_minimo)}</td>
-                    <td className={cx('px-4 text-right tabular-nums text-emerald-600 dark:text-emerald-400', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
-                      {it.poupanca_pct != null && (
-                        <span>
-                          <span className="font-semibold">−{formatPct(it.poupanca_pct, 0)}</span>
-                          <span className="text-xs text-slate-400 ml-1">({formatEUR(it.poupanca_potencial, { compact: true })})</span>
-                        </span>
+                      <span className="line-clamp-2 font-medium">{it.titulo}</span>
+                      {it.referencia && (
+                        <span className="block text-[10px] uppercase tracking-wider text-slate-400 mt-0.5">{it.referencia}</span>
                       )}
                     </td>
-                    <td className={cx('px-4', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
-                      <UrgencyBadge days={it.dias_ate_encerramento} />
+                    <td className={cx('px-3 text-slate-600 dark:text-slate-400', density === 'compact' ? 'py-1.5' : 'py-2.5')}>{it.categoria}</td>
+                    <td className={cx('px-3 text-slate-600 dark:text-slate-400', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
+                      {it.distrito ?? '—'}
+                      {it.concelho && (
+                        <span className="block text-[10px] text-slate-400 mt-0.5">{it.concelho}</span>
+                      )}
+                    </td>
+                    <td className={cx('px-3 text-right tabular-nums font-semibold', density === 'compact' ? 'py-1.5' : 'py-2.5')}>{formatEUR(it.valor_minimo, { compact: true })}</td>
+                    <td className={cx('px-3 text-right tabular-nums', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
+                      {it.lance_atual > 0 ? (
+                        <span className="text-brand-teal font-semibold">{formatEUR(it.lance_atual, { compact: true })}</span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className={cx('px-3 text-right tabular-nums text-slate-600 dark:text-slate-400', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
+                      {formatEUR(it.valor_avaliacao, { compact: true })}
+                    </td>
+                    <td className={cx('px-3 text-right tabular-nums font-medium', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
+                      {it.desconto_vs_avaliacao_pct != null ? (
+                        <span className={cx(
+                          it.desconto_vs_avaliacao_pct >= 30 ? 'text-emerald-600 dark:text-emerald-400' :
+                          it.desconto_vs_avaliacao_pct >= 15 ? 'text-amber-600 dark:text-amber-400' :
+                          'text-slate-600 dark:text-slate-400'
+                        )}>
+                          −{formatPct(it.desconto_vs_avaliacao_pct, 0)}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className={cx('px-3 text-right tabular-nums', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
+                      {it.dias_ate_encerramento > 0 ? (
+                        <span className={cx(
+                          it.dias_ate_encerramento <= 7 ? 'text-red-600 dark:text-red-400 font-semibold' :
+                          it.dias_ate_encerramento <= 30 ? 'text-amber-600 dark:text-amber-400' :
+                          'text-slate-600 dark:text-slate-400'
+                        )}>{it.dias_ate_encerramento}d</span>
+                      ) : it.dias_ate_encerramento <= 0 && it.dias_ate_encerramento > -30 ? (
+                        <span className="text-slate-400">−{Math.abs(it.dias_ate_encerramento)}d</span>
+                      ) : '—'}
+                    </td>
+                    <td className={cx('px-3', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
+                      <EstadoPill estado={it.estado} />
+                    </td>
+                    <td className={cx('px-3 text-right', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
+                      <Link
+                        to={`/leilao/${it.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 hover:text-brand-teal hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        aria-label="Abrir detalhe do leilão"
+                        title="Abrir detalhe do leilão"
+                      >
+                        →
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -469,6 +514,21 @@ function UrgencyBadge({ days }: { days: number | undefined | null }) {
   );
 }
 
+function EstadoPill({ estado }: { estado: string | undefined | null }) {
+  if (!estado) return <span className="text-slate-400">—</span>;
+  const tones: Record<string, string> = {
+    'Em curso':   'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300',
+    'Terminado':  'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300',
+    'Cancelado':  'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
+    'Agendado':   'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
+  };
+  return (
+    <span className={cx('inline-block px-2 py-0.5 rounded-full text-xs font-medium', tones[estado] ?? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400')}>
+      {estado}
+    </span>
+  );
+}
+
 function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) {
   return (
     <div
@@ -498,6 +558,7 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
           <div className="grid grid-cols-2 gap-3">
             <Stat label="Valor mínimo" value={formatEUR(item.valor_minimo)} />
             <Stat label="Valor avaliação" value={formatEUR(item.valor_avaliacao)} />
+            <Stat label="Lance atual" value={item.lance_atual > 0 ? formatEUR(item.lance_atual) : '—'} highlight={item.lance_atual > 0 ? 'emerald' : undefined} />
             <Stat label="Valor mercado" value={formatEUR(item.valor_mercado_estimado)} />
             {item.poupanca_pct != null && (
               <Stat label="Poupança" value={`${formatPct(item.poupanca_pct, 1)} (${formatEUR(item.poupanca_potencial, { compact: true })})`}
@@ -516,18 +577,12 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
           </div>
 
           <div>
-            <p className="text-xs uppercase text-slate-500 mb-1">Publicação</p>
-            <p className="text-sm text-slate-700 dark:text-slate-300">
-              {item.data_publicacao ? new Date(item.data_publicacao).toLocaleDateString('pt-PT') : '—'}
-            </p>
-          </div>
-
-          {item.estado && (
-            <div>
-              <p className="text-xs uppercase text-slate-500 mb-1">Estado</p>
-              <p className="text-sm text-slate-700 dark:text-slate-300">{item.estado}</p>
+            <p className="text-xs uppercase text-slate-500 mb-1">Referência e estado</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <EstadoPill estado={item.estado} />
+              <span className="text-xs font-mono text-slate-500">{item.referencia}</span>
             </div>
-          )}
+          </div>
           {item.modalidade && (
             <div>
               <p className="text-xs uppercase text-slate-500 mb-1">Modalidade</p>
@@ -536,10 +591,10 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
           )}
 
           {item.link && (
-            <a href={item.link} target="_blank" rel="noopener noreferrer"
+            <Link to={item.link}
                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-teal text-white font-medium hover:opacity-90 min-h-[44px]">
-              <ExternalLink size={16} /> Abrir em e-leilões.pt
-            </a>
+              Ver página completa →
+            </Link>
           )}
           <style>{`@keyframes drawerSlideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
         </div>
