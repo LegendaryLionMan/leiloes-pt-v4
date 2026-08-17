@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
@@ -353,16 +353,16 @@ export default function Lista() {
                         <span className="block text-[10px] text-slate-400 mt-0.5">{it.concelho}</span>
                       )}
                     </td>
-                    <td className={cx('px-3 text-right tabular-nums font-semibold', density === 'compact' ? 'py-1.5' : 'py-2.5')}>{formatEUR(it.valor_minimo, { compact: true })}</td>
+                    <td className={cx('px-3 text-right tabular-nums font-semibold', density === 'compact' ? 'py-1.5' : 'py-2.5')}>{formatEUR(it.valor_minimo)}</td>
                     <td className={cx('px-3 text-right tabular-nums', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
                       {it.lance_atual > 0 ? (
-                        <span className="text-brand-teal font-semibold">{formatEUR(it.lance_atual, { compact: true })}</span>
+                        <span className="text-brand-teal font-semibold">{formatEUR(it.lance_atual)}</span>
                       ) : (
                         <span className="text-slate-400">—</span>
                       )}
                     </td>
                     <td className={cx('px-3 text-right tabular-nums text-slate-600 dark:text-slate-400', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
-                      {formatEUR(it.valor_avaliacao, { compact: true })}
+                      {formatEUR(it.valor_avaliacao)}
                     </td>
                     <td className={cx('px-3 text-right tabular-nums font-medium', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
                       {it.desconto_vs_avaliacao_pct != null ? (
@@ -390,15 +390,7 @@ export default function Lista() {
                       <EstadoPill estado={it.estado} />
                     </td>
                     <td className={cx('px-3 text-right', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
-                      <Link
-                        to={`/leilao/${it.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 hover:text-brand-teal hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        aria-label="Abrir detalhe do leilão"
-                        title="Abrir detalhe do leilão"
-                      >
-                        →
-                      </Link>
+                      <span className="inline-block w-8 h-8 text-center text-slate-300" aria-hidden>↳</span>
                     </td>
                   </tr>
                 ))}
@@ -530,6 +522,14 @@ function EstadoPill({ estado }: { estado: string | undefined | null }) {
 }
 
 function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) {
+  // ESC closes the drawer
+  const handleKey = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+  }, [onClose]);
+  useEffect(() => {
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [handleKey]);
   return (
     <div
       role="dialog"
@@ -589,12 +589,26 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
               <p className="text-sm text-slate-700 dark:text-slate-300">{item.modalidade}</p>
             </div>
           )}
+          {item.praca && (
+            <div>
+              <p className="text-xs uppercase text-slate-500 mb-1">Praça</p>
+              <p className="text-sm text-slate-700 dark:text-slate-300">{item.praca}</p>
+            </div>
+          )}
+          {item.fonte && (
+            <div>
+              <p className="text-xs uppercase text-slate-500 mb-1">Fonte</p>
+              <p className="text-sm text-slate-700 dark:text-slate-300">{item.fonte}</p>
+            </div>
+          )}
 
           {item.link && (
-            <Link to={item.link}
-               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-teal text-white font-medium hover:opacity-90 min-h-[44px]">
-              Ver página completa →
-            </Link>
+            <a href={`https://www.e-leilões.pt/`} target="_blank" rel="noopener noreferrer"
+               onClick={() => navigator.clipboard?.writeText(item.referencia ?? '')}
+               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-teal text-white font-medium hover:opacity-90 min-h-[44px]"
+               title="Abre o e-leilões.pt e procura pela referência (copiada automaticamente)">
+              <ExternalLink size={16} /> Abrir e-leilões.pt
+            </a>
           )}
           <style>{`@keyframes drawerSlideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
         </div>

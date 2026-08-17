@@ -467,8 +467,10 @@ def export_csv(
     cols = [
         "id", "referencia", "titulo", "categoria", "distrito", "concelho",
         "freguesia", "valor_avaliacao", "valor_minimo", "valor_mercado_estimado",
+        "lance_atual", "desconto_vs_avaliacao_pct",
         "poupanca_potencial", "poupanca_pct", "data_publicacao",
-        "data_encerramento", "dias_ate_encerramento", "estado", "modalidade", "link",
+        "data_encerramento", "dias_ate_encerramento", "estado",
+        "praca", "modalidade", "fonte", "link",
     ]
     cols = [c for c in cols if c in (records[0].keys() if records else cols)]
     buf = io.StringIO()

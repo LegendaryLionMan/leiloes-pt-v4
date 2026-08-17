@@ -9,7 +9,6 @@ import Top from './routes/Top';
 import CriarAlerta from './routes/CriarAlerta';
 import Matches from './routes/Matches';
 import Alertas from './routes/Alertas';
-import LeilaoDetail from './routes/LeilaoDetail';
 import { fetchCacheInfo, fetchAlertas } from './lib/api';
 import { onToast, cx } from './lib/ui';
 
@@ -220,7 +219,6 @@ export default function App() {
             <Route path="/alertas" element={<Alertas />} />
             <Route path="/alerta/new" element={<CriarAlerta />} />
             <Route path="/matches" element={<Matches />} />
-            <Route path="/leilao/:id" element={<LeilaoDetail />} />
           </Routes>
         </main>
       </div>

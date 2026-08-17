@@ -45,15 +45,21 @@ test.describe('leiloes-pt v4 smoke', () => {
     await expect(page.getByText(/Top distritos/i)).toBeVisible();
   });
 
-  test('leilao detail page shows valor mínimo + lance atual + dates + warning', async ({ page }) => {
-    const r = await page.request.get(BASE + '/api/leiloes?page_size=1');
-    const j = await r.json();
-    const id = j.items[0].id;
-    await page.goto(BASE + '/leilao/' + id);
-    await expect(page.getByText('Voltar à lista')).toBeVisible();
-    await expect(page.getByText('Valores')).toBeVisible();
-    await expect(page.getByText('Datas')).toBeVisible();
-    await expect(page.getByText(/Nota:.*e-leilões.pt.*deep links/i)).toBeVisible();
+  test('leilao detail (drawer) shows valor mínimo + lance atual + dates + praça', async ({ page }) => {
+    await page.goto(BASE + '/');
+    await page.waitForResponse((r) => r.url().includes('/api/leiloes') && r.status() === 200);
+    await page.waitForTimeout(500);
+    // Open first row → drawer
+    await page.locator('table tbody tr').first().click();
+    const drawer = page.locator('[role="dialog"][aria-label*="Detalhes"]');
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByText('Voltar à lista')).not.toBeVisible(); // drawer has no "Voltar à lista"
+    // Drawer must show praça + lance atual
+    const body = await drawer.evaluate((el: any) => el.textContent ?? '');
+    expect(body, 'drawer shows Praça section').toContain('Praça');
+    expect(body, 'drawer shows Fonte section').toContain('Fonte');
+    expect(body, 'drawer shows Lance atual section').toContain('Lance atual');
+    expect(body, 'drawer shows Encerramento').toContain('Encerramento');
   });
 
   test('criar alerta page renders form with facets', async ({ page }) => {
