@@ -1,0 +1,60 @@
+{
+  "_comment": "Configuração das fontes oficiais de leilões em Portugal. v3.1: apenas dados reais (e-leilões.pt via API REST). Sem fallback sintético.",
+  "sources": [
+    {
+      "id": "e-leiloes",
+      "name": "e-leilões.pt",
+      "url": "https://www.e-leiloes.pt",
+      "type": "judicial_fiscal",
+      "status": "api_active",
+      "note": "API REST pública (api/Eventos/). Sem chave. Dados em cache/leiloes_reais.json."
+    },
+    {
+      "id": "e-financas",
+      "name": "e-Faturas / AT",
+      "url": "https://www.portaldasfinancas.gov.pt",
+      "type": "fiscal",
+      "status": "no_public_api",
+      "note": "AT não expõe API pública para penhoras/leilões fiscais. Consulta manual via AT."
+    },
+    {
+      "id": "citius",
+      "name": "CITIUS (MJ)",
+      "url": "https://www.citius.mj.pt",
+      "type": "judicial",
+      "status": "official_data",
+      "note": "Processos judiciais públicos. Penhores publicitados em Diário da República."
+    },
+    {
+      "id": "igcp",
+      "name": "IGCP - Tesouro Público",
+      "url": "https://www.igcp.pt",
+      "type": "fiscal",
+      "status": "api_partial",
+      "note": "Venda de imóveis do Estado via IGCP/EGE."
+    },
+    {
+      "id": "ahre",
+      "name": "AHRE - Associação Hotelaria Restauração",
+      "url": "https://www.ahre.pt",
+      "type": "sectorial",
+      "status": "partial"
+    },
+    {
+      "id": "expresso-leiloes",
+      "name": "Expresso Leilões",
+      "url": "https://www.expressoleiloes.pt",
+      "type": "judicial",
+      "status": "scraping_protected"
+    },
+    {
+      "id": "leilosoc",
+      "name": "LeiloSoc",
+      "url": "https://www.leilosoc.com",
+      "type": "judicial",
+      "status": "scraping_protected"
+    }
+  ],
+  "update_interval_hours": 6,
+  "data_retention_days": 365
+}
