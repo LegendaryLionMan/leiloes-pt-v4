@@ -49,6 +49,7 @@ export type FilterParams = {
   valor_max?: number;
   novos_24h?: boolean;
   encerram_30d?: boolean;
+  min_desconto_pct?: number;
   ordenar_por?: 'data_encerramento' | 'data_publicacao' | 'valor_minimo' | 'poupanca_potencial' | 'poupanca_pct' | 'titulo';
   ordem?: 'asc' | 'desc';
   texto_livre?: string;

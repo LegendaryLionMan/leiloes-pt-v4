@@ -1,24 +1,21 @@
 import { Routes, Route, NavLink, Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Home, Map, BarChart3, Trophy, Bell, BellPlus, Sparkles, Sun, Moon, Menu, X, Activity } from 'lucide-react';
+import { Home, Map, BarChart3, Bell, Sparkles, Sun, Moon, Menu, X, Activity } from 'lucide-react';
 import Lista from './routes/Lista';
 import Mapa from './routes/Mapa';
 import Visualizacoes from './routes/Visualizacoes';
-import Top from './routes/Top';
 import CriarAlerta from './routes/CriarAlerta';
 import Matches from './routes/Matches';
 import Alertas from './routes/Alertas';
 import { fetchCacheInfo, fetchAlertas } from './lib/api';
-import { onToast, cx } from './lib/ui';
+import { onToast, cx } from '@/lib/ui';
 
 const tabs = [
   { to: '/', label: 'Lista', icon: Home, end: true },
-  { to: '/top', label: 'Top', icon: Trophy },
   { to: '/visualizacoes', label: 'Gráficos', icon: BarChart3 },
   { to: '/mapa', label: 'Mapa', icon: Map },
   { to: '/alertas', label: 'Alertas', icon: Bell },
-  { to: '/alerta/new', label: 'Novo alerta', icon: BellPlus },
   { to: '/matches', label: 'Matches', icon: Sparkles },
 ];
 
@@ -213,7 +210,6 @@ export default function App() {
         <main id="main" className="flex-1 p-4 sm:p-6 overflow-auto">
           <Routes>
             <Route path="/" element={<Lista />} />
-            <Route path="/top" element={<Top />} />
             <Route path="/visualizacoes" element={<Visualizacoes />} />
             <Route path="/mapa" element={<Mapa />} />
             <Route path="/alertas" element={<Alertas />} />

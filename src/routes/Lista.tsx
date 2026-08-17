@@ -33,6 +33,8 @@ export default function Lista() {
     if (n24 === '1') obj.novos_24h = true;
     const e30 = search.get('encerram_30d');
     if (e30 === '1') obj.encerram_30d = true;
+    const md = search.get('min_desc');
+    if (md) obj.min_desconto_pct = parseFloat(md);
     const q = search.get('q');
     if (q) obj.texto_livre = q;
     const sort = search.get('sort') as FilterParams['ordenar_por'] | null;
@@ -55,6 +57,7 @@ export default function Lista() {
     }
     if (filters.novos_24h) sp.set('novos_24h', '1');
     if (filters.encerram_30d) sp.set('encerram_30d', '1');
+    if (filters.min_desconto_pct != null && filters.min_desconto_pct > 0) sp.set('min_desc', String(filters.min_desconto_pct));
     if (filters.texto_livre) sp.set('q', filters.texto_livre);
     if (filters.ordenar_por) sp.set('sort', filters.ordenar_por);
     if (filters.ordem) sp.set('ordem', filters.ordem);
@@ -80,6 +83,7 @@ export default function Lista() {
     (filters.estado?.length ?? 0) +
     (filters.novos_24h ? 1 : 0) +
     (filters.encerram_30d ? 1 : 0) +
+    (filters.min_desconto_pct != null && filters.min_desconto_pct > 0 ? 1 : 0) +
     (filters.texto_livre ? 1 : 0);
 
   const toggleListItem = <K extends keyof FilterParams>(key: K, value: string) => {
@@ -124,27 +128,38 @@ export default function Lista() {
             {totalActiveFilters > 0 && ` (${totalActiveFilters} filtros ativos)`}
           </p>
         </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <a
-            href={csvExportUrl(filters)}
-            download
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 min-h-[36px] transition-colors"
-            aria-label="Descarregar CSV"
-          >
-            <Download size={16} /> CSV
-          </a>
-          <button
-            onClick={() => setDensity((d) => (d === 'comfortable' ? 'compact' : 'comfortable'))}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 min-h-[36px] transition-colors"
-            aria-label={`Mudar densidade (atual: ${density})`}
-          >
-            <SlidersHorizontal size={16} /> {density === 'compact' ? 'Compacto' : 'Confortável'}
-          </button>
-        </div>
       </header>
 
-      {/* Filter row */}
+      {/* Toolbar row 1: search box + CSV + density */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={filters.texto_livre ?? ''}
+            onChange={(e) => setFilters((f) => ({ ...f, texto_livre: e.target.value || undefined }))}
+            placeholder="Pesquisar título, freguesia, referência…"
+            aria-label="Pesquisar título, freguesia, referência"
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal"
+          />
+        </div>
+        <a
+          href={csvExportUrl(filters)}
+          download
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors min-h-[40px]"
+          aria-label="Descarregar CSV"
+        >
+          <Download size={16} /> CSV
+        </a>
+        <button
+          onClick={() => setDensity((d) => (d === 'comfortable' ? 'compact' : 'comfortable'))}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors min-h-[40px]"
+          aria-label={`Mudar densidade (atual: ${density})`}
+        >
+          <SlidersHorizontal size={16} /> {density === 'compact' ? 'Compacto' : 'Confortável'}
+        </button>
+      </div>
+
+      {/* Toolbar row 2: quick pills (one-click toggles) */}
       <div className="flex items-center gap-2 flex-wrap">
         <Pill emoji="🏖️" label="Tavira — Imóveis + Terrenos" onClick={setTaviraPreset}
               active={filters.distrito?.[0] === 'Faro' && filters.concelho?.[0] === 'Tavira'}
@@ -155,28 +170,39 @@ export default function Lista() {
         <Pill emoji="🔥" label="Encerram ≤30d"
               onClick={() => setBooleanFilter('encerram_30d')}
               active={!!filters.encerram_30d} tone="amber" />
-        <Pill emoji="💰" label={`Poupança ≥30%`}
-              onClick={() => setFilters((f) => ({ ...f }))}  // visual placeholder
+        <Pill emoji="💰" label={
+          filters.min_desconto_pct != null && filters.min_desconto_pct > 0
+            ? `Poupança ≥${filters.min_desconto_pct}%`
+            : 'Poupança ≥30%'
+        }
+              onClick={() => {
+                // Cycle through 0 → 30 → 50 → 70
+                const cur = filters.min_desconto_pct ?? 0;
+                const next = cur >= 70 ? 0 : cur === 0 ? 30 : cur === 30 ? 50 : 70;
+                setFilters((f) => ({ ...f, min_desconto_pct: next || undefined }));
+              }}
+              active={(filters.min_desconto_pct ?? 0) > 0}
               tone="indigo" />
 
         {totalActiveFilters > 0 && (
           <button
             onClick={clearAll}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 min-h-[36px] transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 min-h-[36px] transition-colors"
+            aria-label="Limpar todos os filtros"
           >
             <Trash2 size={14} /> Limpar tudo ({totalActiveFilters})
           </button>
         )}
 
-        {/* Advanced filters popover */}
+        {/* Advanced filters popover — Distrito, Concelho, Categoria, Estado, slider poupança, valor range */}
         <Popover
           trigger={(open) => (
             <button
               onClick={open}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-medium min-h-[36px] transition-colors"
-              aria-label="Filtros avançados"
+              aria-label="Mais filtros"
             >
-              <Filter size={16} /> Filtros avançados
+              <Filter size={16} /> Mais filtros
               <ChevronDown size={14} />
             </button>
           )}
@@ -198,13 +224,38 @@ export default function Lista() {
                     selected={filters.estado ?? []}
                     onToggle={(v) => toggleListItem('estado', v)} />
                   <div>
-                    <p className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Pesquisa livre</p>
+                    <p className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Valor mínimo (€)</p>
+                    <div className="flex items-center gap-2">
+                      <input type="number" min={0} placeholder="mín"
+                        value={filters.valor_min ?? ''}
+                        onChange={(e) => setFilters((f) => ({ ...f, valor_min: e.target.value === '' ? undefined : Number(e.target.value) }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm" />
+                      <span className="text-slate-400">—</span>
+                      <input type="number" min={0} placeholder="máx"
+                        value={filters.valor_max ?? ''}
+                        onChange={(e) => setFilters((f) => ({ ...f, valor_max: e.target.value === '' ? undefined : Number(e.target.value) }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                      Poupança mínima: <strong className="text-slate-900 dark:text-slate-100">
+                        {filters.min_desconto_pct ?? 0}%
+                      </strong>
+                    </p>
                     <input
-                      value={filters.texto_livre ?? ''}
-                      onChange={(e) => setFilters((f) => ({ ...f, texto_livre: e.target.value || undefined }))}
-                      placeholder="ex: terreno, apartamento, gaveto…"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm"
+                      type="range"
+                      min="0"
+                      max="70"
+                      step="5"
+                      value={filters.min_desconto_pct ?? 0}
+                      onChange={(e) => setFilters((f) => ({ ...f, min_desconto_pct: Number(e.target.value) || undefined }))}
+                      className="w-full accent-brand-teal"
+                      aria-label="Slider de poupança mínima"
                     />
+                    <div className="flex justify-between text-xs text-slate-400 mt-1">
+                      <span>0%</span><span>70%</span>
+                    </div>
                   </div>
                 </>
               )}
@@ -260,7 +311,7 @@ export default function Lista() {
         </Card>
       )}
 
-      {/* Sort + density */}
+      {/* Sort */}
       <div className="flex items-center gap-2 flex-wrap text-sm">
         <span className="text-slate-500 dark:text-slate-400">Ordenar por:</span>
         {(['data_encerramento', 'valor_minimo', 'poupanca_potencial', 'poupanca_pct', 'data_publicacao', 'titulo'] as const).map((by) => (
@@ -290,16 +341,6 @@ export default function Lista() {
           {filters.ordem === 'desc' ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
           {filters.ordem === 'desc' ? 'desc' : 'asc'}
         </button>
-        <div className="ml-auto flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-          <Search size={14} />
-          <input
-            type="search"
-            placeholder="Pesquisar título, freguesia…"
-            value={filters.texto_livre ?? ''}
-            onChange={(e) => setFilters((f) => ({ ...f, texto_livre: e.target.value || undefined }))}
-            className="px-2 py-1 border-b border-slate-300 dark:border-slate-700 bg-transparent focus:outline-none focus:border-brand-teal w-48"
-          />
-        </div>
       </div>
 
       {/* List */}

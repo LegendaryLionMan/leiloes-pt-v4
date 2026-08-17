@@ -19,13 +19,6 @@ test.describe('leiloes-pt v4 smoke', () => {
     await expect(page.getByText(/1 distrito\(s\).*1 concelho\(s\).*1 categoria\(s\)/)).toBeVisible();
   });
 
-  test('top opportunities page', async ({ page }) => {
-    await page.goto(BASE + '/top');
-    await expect(page.getByRole('heading', { name: /Top oportunidades/ })).toBeVisible();
-    await expect(page.getByText('Desconto mínimo')).toBeVisible();
-    await expect(page.getByRole('combobox', { name: 'Distrito' })).toBeVisible();
-  });
-
   test('visualizations page renders all 4 chart cards', async ({ page }) => {
     await page.goto(BASE + '/visualizacoes');
     await expect(page.getByText('Por categoria (quantidade)')).toBeVisible();

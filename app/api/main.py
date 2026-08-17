@@ -259,6 +259,7 @@ def get_leiloes(
     valor_max: Optional[float] = Query(None, ge=0),
     novos_24h: bool = False,
     encerram_30d: bool = False,
+    min_desconto_pct: Optional[float] = Query(None, ge=0, le=100),
     ordenar_por: str = Query("data_encerramento", pattern="^(data_encerramento|data_publicacao|valor_minimo|poupanca_potencial|poupanca_pct|titulo)$"),
     ordem: str = Query("asc", pattern="^(asc|desc)$"),
     texto_livre: Optional[str] = Query(None),
@@ -280,6 +281,8 @@ def get_leiloes(
         ordem=ordem,
         texto_livre=texto_livre or "",
     )
+    if min_desconto_pct is not None:
+        df_filt = df_filt[df_filt["poupanca_pct"] >= min_desconto_pct]
     items = df_filt.to_dict(orient="records")
     total = len(items)
     start = (page - 1) * page_size

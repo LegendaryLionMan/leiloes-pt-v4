@@ -364,38 +364,6 @@ test.describe('UI/UX meticulous validation', () => {
     }
   });
 
-  test('TOP PAGE — each ranked item matches the API exactly', async ({ page }) => {
-    // e-leilões.pt items are all 15% off the appraisal (platform rule), so we use min=0
-    const r = await page.request.get(`${API}/top?top_n=10&min_desconto_pct=0`);
-    const j = await r.json();
-    const apiItems: LeilaoAPI[] = j.items;
-    expect(apiItems.length).toBeGreaterThan(0);
-
-    await page.goto(SPA + '/top?top_n=10&min_desconto_pct=0');
-    await page.waitForResponse((resp) => resp.url().includes('/api/top') && resp.status() === 200);
-    await page.waitForTimeout(800);
-
-    const body = await page.evaluate(() => document.body.innerText);
-    for (const api of apiItems) {
-      // Title must appear
-      expect(body, `Top page shows titulo for ${api.referencia}`).toContain(api.titulo);
-      // Lance atual appears (when > 0)
-      if (api.lance_atual > 0) {
-        const lanceTxt = euroFull(api.lance_atual);
-        expect(body, `Top page shows lance atual for ${api.referencia}: ${lanceTxt}`).toContain(lanceTxt);
-      } else {
-        expect(body, `Top page shows sem licitação for ${api.referencia}`).toContain('sem licitação');
-      }
-      // Δ vs mín.
-      if (api.lance_atual > 0) {
-        const deltaPct = ((api.lance_atual - api.valor_minimo) / api.valor_minimo) * 100;
-        const sign = deltaPct >= 0 ? '+' : '';
-        const deltaTxt = `${sign}${deltaPct.toFixed(1).replace('.', ',')}%`;
-        expect(body, `Top page shows Δ vs mín for ${api.referencia}: ${deltaTxt}`).toContain(deltaTxt);
-      }
-    }
-  });
-
   test('MAPA — district bubbles show correct counts and descontos', async ({ page }) => {
     const r = await page.request.get(`${API}/mapa/distritos`);
     const j = await r.json();
