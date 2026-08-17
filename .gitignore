@@ -1,0 +1,24 @@
+# Node
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.pytest_cache/
+
+# Data
+data/leiloes.db
+data/leiloes.db-journal
+data/leiloes.db-wal
+data/leiloes.db-shm
+vendor/leiloes-pt-data/data/cache/
+
+# IDE
+.vscode/
+.idea/
