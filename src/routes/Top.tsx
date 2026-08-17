@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { ExternalLink, TrendingUp } from 'lucide-react';
 import { fetchFacets, fetchTop, type Leilao } from '@/lib/api';
 import { Card, EmptyState, ErrorState, Spinner, cx, categoryEmoji, formatEUR, formatPct, urgencyBadge } from '@/lib/ui';
 
 export default function Top() {
-  const [minDesconto, setMinDesconto] = useState(30);
+  const [searchParams] = useSearchParams();
+  const [minDesconto, setMinDesconto] = useState(() => {
+    const v = parseFloat(searchParams.get('min_desconto_pct') ?? '30');
+    return Number.isFinite(v) ? Math.max(0, Math.min(70, v)) : 30;
+  });
   const [distrito, setDistrito] = useState<string | null>(null);
   const [categoria, setCategoria] = useState<string | null>(null);
 
@@ -122,12 +127,25 @@ function TopRow({ item, rank }: { item: Leilao; rank: number }) {
         </p>
       </div>
       <div className="text-right flex-shrink-0">
-        <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-          −{formatPct(item.poupanca_pct, 1)}
-        </p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-          {formatEUR(item.poupanca_potencial, { compact: true })}
-        </p>
+        {item.lance_atual > 0 ? (
+          <>
+            <p className={cx(
+              'text-base font-bold tabular-nums',
+              item.lance_atual >= item.valor_minimo ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
+            )}>
+              {formatEUR(item.lance_atual)}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+              Δ vs mín.: {item.lance_atual >= item.valor_minimo ? '+' : ''}
+              {(((item.lance_atual - item.valor_minimo) / item.valor_minimo) * 100).toFixed(1).replace('.', ',')}%
+            </p>
+          </>
+        ) : (
+          <p className="text-base font-bold tabular-nums text-slate-400">
+            —
+            <span className="block text-xs text-slate-500 font-normal">sem licitação</span>
+          </p>
+        )}
         <span className={cx(
           'inline-block px-2 py-0.5 rounded-full text-xs font-medium mt-1',
           u.tone === 'red' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'

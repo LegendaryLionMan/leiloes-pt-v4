@@ -323,10 +323,9 @@ export default function Lista() {
                   <th className="px-3 py-2.5 font-medium text-right">Valor mín.</th>
                   <th className="px-3 py-2.5 font-medium text-right">Lance atual</th>
                   <th className="px-3 py-2.5 font-medium text-right">Avaliação</th>
-                  <th className="px-3 py-2.5 font-medium text-right">Desc. %</th>
+                  <th className="px-3 py-2.5 font-medium text-right">Δ Lance</th>
                   <th className="px-3 py-2.5 font-medium text-right">Dias</th>
                   <th className="px-3 py-2.5 font-medium">Estado</th>
-                  <th className="px-3 py-2.5 font-medium text-right">Abrir</th>
                 </tr>
               </thead>
               <tbody>
@@ -365,15 +364,16 @@ export default function Lista() {
                       {formatEUR(it.valor_avaliacao)}
                     </td>
                     <td className={cx('px-3 text-right tabular-nums font-medium', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
-                      {it.desconto_vs_avaliacao_pct != null ? (
+                      {it.lance_atual > 0 ? (
                         <span className={cx(
-                          it.desconto_vs_avaliacao_pct >= 30 ? 'text-emerald-600 dark:text-emerald-400' :
-                          it.desconto_vs_avaliacao_pct >= 15 ? 'text-amber-600 dark:text-amber-400' :
-                          'text-slate-600 dark:text-slate-400'
+                          it.lance_atual >= it.valor_minimo ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
                         )}>
-                          −{formatPct(it.desconto_vs_avaliacao_pct, 0)}
+                          {it.lance_atual >= it.valor_minimo ? '+' : ''}
+                          {(((it.lance_atual - it.valor_minimo) / it.valor_minimo) * 100).toFixed(1).replace('.', ',')}%
                         </span>
-                      ) : '—'}
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
                     </td>
                     <td className={cx('px-3 text-right tabular-nums', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
                       {it.dias_ate_encerramento > 0 ? (
@@ -388,9 +388,6 @@ export default function Lista() {
                     </td>
                     <td className={cx('px-3', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
                       <EstadoPill estado={it.estado} />
-                    </td>
-                    <td className={cx('px-3 text-right', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
-                      <span className="inline-block w-8 h-8 text-center text-slate-300" aria-hidden>↳</span>
                     </td>
                   </tr>
                 ))}
@@ -559,11 +556,9 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
             <Stat label="Valor mínimo" value={formatEUR(item.valor_minimo)} />
             <Stat label="Valor avaliação" value={formatEUR(item.valor_avaliacao)} />
             <Stat label="Lance atual" value={item.lance_atual > 0 ? formatEUR(item.lance_atual) : '—'} highlight={item.lance_atual > 0 ? 'emerald' : undefined} />
-            <Stat label="Valor mercado" value={formatEUR(item.valor_mercado_estimado)} />
-            {item.poupanca_pct != null && (
-              <Stat label="Poupança" value={`${formatPct(item.poupanca_pct, 1)} (${formatEUR(item.poupanca_potencial, { compact: true })})`}
-                    highlight="emerald" />
-            )}
+            <Stat label="Desconto vs mín." value={item.lance_atual > 0
+              ? `${(((item.lance_atual - item.valor_minimo) / item.lance_atual) * 100).toFixed(1).replace('.', ',')}%`
+              : '—'} subtitle={item.lance_atual > 0 ? 'lance vs mínimo' : 'sem licitação'} />
           </div>
 
           <div>

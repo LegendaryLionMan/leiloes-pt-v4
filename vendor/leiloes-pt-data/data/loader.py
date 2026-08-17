@@ -117,7 +117,14 @@ def _carregar_reais_safe():
             "freguesia": it.get("moradaFreguesia", ""),
             "valor_avaliacao": float(it.get("valorBase", 0) or 0),
             "valor_minimo": float(it.get("valorMinimo", 0) or 0),
-            "valor_mercado_estimado": float(it.get("valorBase", 0) or 0) * 1.45,
+            # valor_mercado_estimado: o e-leilões.pt NÃO fornece um valor de mercado separado.
+            # O `valorBase` da API é o "valor de avaliação" dado pelo banco/tribunal como
+            # colateral — que na prática é a melhor estimativa de mercado que temos.
+            # NOTA: poupanca_pct/valor_mercado_estimado são derivados da relação
+            # valor_minimo = valorBase × 0.85 (regra fixa do e-leilões.pt: licitação
+            # começa sempre a 85% do valor de avaliação). Por isso poupanca_pct = 15%
+            # para todos os items — não é bug, é a realidade da fonte.
+            "valor_mercado_estimado": float(it.get("valorBase", 0) or 0),
             "data_publicacao": it.get("dataInicio", ""),
             "data_encerramento": it.get("dataFim", ""),
             "data_abertura": it.get("dataInicio", ""),

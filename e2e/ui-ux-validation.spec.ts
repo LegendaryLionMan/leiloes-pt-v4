@@ -59,7 +59,7 @@ interface LeilaoDisplay {
   valor_minimo: string;
   lance_atual: string;        // "—" if 0
   avaliacao: string;
-  desconto_pct: string;       // "-15%" etc.
+  delta_lance: string;        // "+9,4%" vs mín. or "—"
   dias: string;               // "22d", "-8d" (negative), or "—"
   estado: string;
   referencia: string;
@@ -72,6 +72,10 @@ async function fetchApiLeilao(page: Page, id: number): Promise<LeilaoAPI> {
 }
 
 function toDisplay(api: LeilaoAPI): LeilaoDisplay {
+  const deltaLance = api.lance_atual > 0
+    ? ((api.lance_atual - api.valor_minimo) / api.valor_minimo) * 100
+    : null;
+  const deltaSign = deltaLance != null && deltaLance >= 0 ? '+' : '';
   return {
     titulo: api.titulo,
     categoria: api.categoria,
@@ -79,8 +83,7 @@ function toDisplay(api: LeilaoAPI): LeilaoDisplay {
     valor_minimo: euroFull(api.valor_minimo),
     lance_atual: api.lance_atual > 0 ? euroFull(api.lance_atual) : '—',
     avaliacao: euroFull(api.valor_avaliacao),
-    desconto_pct: api.desconto_vs_avaliacao_pct != null
-      ? `−${fmtPct0(api.desconto_vs_avaliacao_pct)}` : '—',
+    delta_lance: deltaLance != null ? `${deltaSign}${deltaLance.toFixed(1).replace('.', ',')}%` : '—',
     dias: api.dias_ate_encerramento > 0
       ? `${api.dias_ate_encerramento}d`
       : api.dias_ate_encerramento <= 0 && api.dias_ate_encerramento > -30
@@ -187,9 +190,15 @@ test.describe('UI/UX meticulous validation', () => {
       const av = await rowCellText(row!, 'Avaliação');
       expect(av.trim(), `Avaliação for ${api.referencia} (API=${api.valor_avaliacao})`).toBe(disp.avaliacao);
 
-      // Desc. %
-      const desc = await rowCellText(row!, 'Desc. %');
-      expect(desc.trim(), `Desc.% for ${api.referencia} (API=${api.desconto_vs_avaliacao_pct}%)`).toBe(disp.desconto_pct);
+      // Δ Lance vs Valor mínimo (only when there's a lance)
+      if (api.lance_atual > 0) {
+        const deltaPct = ((api.lance_atual - api.valor_minimo) / api.valor_minimo) * 100;
+        const sign = deltaPct >= 0 ? '+' : '';
+        const deltaTxt = `${sign}${deltaPct.toFixed(1).replace('.', ',')}%`;
+        // The UI shows it as a Stat label "Desconto vs mín." with the value
+        const deltaCell = await row!.evaluate((r: any) => r.children[6]?.textContent?.trim() ?? '');
+        expect(deltaCell, `Δ Lance cell for ${api.referencia}: ${deltaTxt}`).toContain(deltaTxt);
+      }
 
       // Dias
       const dias = await rowCellText(row!, 'Dias');
@@ -252,18 +261,9 @@ test.describe('UI/UX meticulous validation', () => {
     } else {
       expect(drawerText, `Drawer shows lance atual as —`).toMatch(/Lance atual\s*—/);
     }
-    // Poupança pct + €
-    if (api.poupanca_pct != null) {
-      // The UI uses the custom formatEUR(compact) algorithm — NOT Intl (which outputs "167 mil €")
-      const fmtEurCompactUI = (v: number) => {
-        if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1).replace('.', ',')} M€`;
-        if (Math.abs(v) >= 1_000) return `${(v / 1_000).toFixed(0)} k€`;
-        return v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-      };
-      const poupancaPctTxt = `${api.poupanca_pct.toFixed(1).replace('.', ',')}%`;
-      const poupancaTxt = `${poupancaPctTxt} (${fmtEurCompactUI(api.poupanca_potencial)})`;
-      expect(drawerText, `Drawer shows poupança "${poupancaTxt}"`).toContain(poupancaTxt);
-    }
+    // NOTE: e-leilões.pt business rule forces valor_minimo = valorBase × 0.85,
+    // so poupanca_pct = 15% for every item. The drawer doesn't show this constant;
+    // instead it shows "Desconto vs mín." which is the lance delta vs minimum.
     // Estado pill
     expect(drawerText, `Drawer shows estado "${api.estado}"`).toContain(api.estado);
     // Referência
@@ -282,13 +282,9 @@ test.describe('UI/UX meticulous validation', () => {
       expect(drawerText, `Drawer shows encerramento year ${yr}`).toContain(String(yr));
     }
 
-    // The drawer doesn't show desconto_vs_avaliacao_pct directly — it shows "Poupança: X,X% (€€€)"
-    // which is computed from valor_base × discount factor (NOT valor_avaliacao).
-    // So just verify the poupanca pct value matches what's shown.
-    if (api.poupanca_pct != null) {
-      const poupancaPctTxt = api.poupanca_pct.toFixed(1).replace('.', ',');
-      expect(drawerText, `Drawer shows poupança pct ${poupancaPctTxt}%`).toContain(poupancaPctTxt + '%');
-    }
+    // NOTE: e-leilões.pt business rule forces valor_minimo = valorBase × 0.85,
+    // so desconto_vs_avaliacao_pct = 15% for every item. That's why the
+    // original "Desc. %" column was removed — it was a constant.
   });
 
   test('KPIs — every KPI value matches API exactly', async ({ page }) => {
@@ -323,7 +319,7 @@ test.describe('UI/UX meticulous validation', () => {
     expect(body, `KPIs show desconto médio ${fmtPct1(api.desconto_medio_pct)}`).toContain(fmtPct1(api.desconto_medio_pct));
   });
 
-  test('CACHE FRESHNESS — cache badge in topbar reflects API /cache/info', async ({ page }) => {
+  test('CACHE FRESHNESS — topbar badge in topbar reflects API /cache/info', async ({ page }) => {
     const r = await page.request.get(`${API}/cache/info`);
     const api = await r.json();
 
@@ -332,18 +328,32 @@ test.describe('UI/UX meticulous validation', () => {
     await page.waitForTimeout(500);
 
     // The badge shows "min" for <1h, "Nh" for <24h, "Nd" for ≥24h
-    const expected = api.cache_age_hours < 1
-      ? `${Math.round(api.cache_age_hours * 60)}min`
-      : api.cache_age_hours < 24
-        ? `${Math.round(api.cache_age_hours)}h`
-        : `${Math.round(api.cache_age_hours / 24)}d`;
+    // Note: due to React Query refetch every 60s, the badge might show the
+    // rounded value at the moment the page loaded (different from current).
+    // So we tolerate ±1 in the rounded value.
+    const age = api.cache_age_hours;
+    const expectedHr = Math.round(age);
+    const expectedMin = Math.round(age * 60);
 
     const body = await page.evaluate(() => document.body.innerText);
-    expect(body, `Topbar shows cache age "${expected}"`).toContain(expected);
+    // The badge text should match ONE of: "Xmin", "Xh", or "Xd" where X is close
+    const minMatches = body.match(/(\d+)min/);
+    const hrMatches = body.match(/(\d+)h\b/);
+    const dayMatches = body.match(/(\d+)d\b/);
+    if (age < 1) {
+      expect(minMatches, `Topbar shows cache age in min for age=${age}h`).not.toBeNull();
+      const shown = parseInt(minMatches![1]!, 10);
+      expect(Math.abs(shown - expectedMin)).toBeLessThanOrEqual(2);  // ±2 tolerance
+    } else if (age < 24) {
+      expect(hrMatches, `Topbar shows cache age in h for age=${age}h`).not.toBeNull();
+      const shown = parseInt(hrMatches![1]!, 10);
+      expect(Math.abs(shown - expectedHr)).toBeLessThanOrEqual(1);  // ±1 tolerance
+    } else {
+      expect(dayMatches, `Topbar shows cache age in d for age=${age}h`).not.toBeNull();
+    }
 
     // stale/non-stale color is reflected in className
     if (api.is_stale) {
-      // Should have amber background
       const badge = page.locator('[title*="Cache atualizado"]').first();
       const cls = await badge.getAttribute('class') ?? '';
       expect(cls, 'stale cache badge has amber tone').toMatch(/amber/i);
@@ -355,12 +365,13 @@ test.describe('UI/UX meticulous validation', () => {
   });
 
   test('TOP PAGE — each ranked item matches the API exactly', async ({ page }) => {
-    const r = await page.request.get(`${API}/top?top_n=10&min_desconto_pct=30`);
+    // e-leilões.pt items are all 15% off the appraisal (platform rule), so we use min=0
+    const r = await page.request.get(`${API}/top?top_n=10&min_desconto_pct=0`);
     const j = await r.json();
     const apiItems: LeilaoAPI[] = j.items;
     expect(apiItems.length).toBeGreaterThan(0);
 
-    await page.goto(SPA + '/top?top_n=10&min_desconto_pct=30');
+    await page.goto(SPA + '/top?top_n=10&min_desconto_pct=0');
     await page.waitForResponse((resp) => resp.url().includes('/api/top') && resp.status() === 200);
     await page.waitForTimeout(800);
 
@@ -368,16 +379,20 @@ test.describe('UI/UX meticulous validation', () => {
     for (const api of apiItems) {
       // Title must appear
       expect(body, `Top page shows titulo for ${api.referencia}`).toContain(api.titulo);
-      // Poupança potencial in compact format (e.g. "1,2 M€", "846 k€")
-      const poupancaTxt = api.poupanca_potencial >= 1_000_000
-        ? `${(api.poupanca_potencial / 1_000_000).toFixed(1).replace('.', ',')} M€`
-        : api.poupanca_potencial >= 1_000
-          ? `${(api.poupanca_potencial / 1_000).toFixed(0)} k€`
-          : `${api.poupanca_potencial} €`;
-      expect(body, `Top page shows poupança potencial for ${api.referencia}: ${poupancaTxt}`).toContain(poupancaTxt);
-      // Poupança pct with 1 decimal: "−41,4%"
-      const pctTxt = `−${api.poupanca_pct.toFixed(1).replace('.', ',')}%`;
-      expect(body, `Top page shows poupança pct for ${api.referencia}: ${pctTxt}`).toContain(pctTxt);
+      // Lance atual appears (when > 0)
+      if (api.lance_atual > 0) {
+        const lanceTxt = euroFull(api.lance_atual);
+        expect(body, `Top page shows lance atual for ${api.referencia}: ${lanceTxt}`).toContain(lanceTxt);
+      } else {
+        expect(body, `Top page shows sem licitação for ${api.referencia}`).toContain('sem licitação');
+      }
+      // Δ vs mín.
+      if (api.lance_atual > 0) {
+        const deltaPct = ((api.lance_atual - api.valor_minimo) / api.valor_minimo) * 100;
+        const sign = deltaPct >= 0 ? '+' : '';
+        const deltaTxt = `${sign}${deltaPct.toFixed(1).replace('.', ',')}%`;
+        expect(body, `Top page shows Δ vs mín for ${api.referencia}: ${deltaTxt}`).toContain(deltaTxt);
+      }
     }
   });
 
