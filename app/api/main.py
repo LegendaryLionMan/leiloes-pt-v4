@@ -43,6 +43,14 @@ app.add_middleware(
 )
 
 
+def _load_items():
+    """Load items via the v3 cache + return as DataFrame + list for JSON."""
+    cache = loader.carregar_leiloes()  # {items, fonte, cache_age_hours, ...}
+    items = cache["items"]
+    df = analytics.para_dataframe(items)
+    return items, df
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "version": "0.1.0"}
@@ -57,18 +65,24 @@ def get_leiloes(
     encerram_30d: bool = False,
     limit: int = 1000,
 ):
-    items = loader.load_all()
-    items = analytics.aplicar_filtros(
-        items,
+    items, df = _load_items()
+    df_filt = analytics.aplicar_filtros(
+        df,
         distritos=distrito,
         concelhos=concelho,
         categorias=categoria,
+        so_novos_24h=novos_24h,
+        so_encerram_prox_30d=encerram_30d,
     )
-    if novos_24h:
-        items = analytics.filtrar_novos_24h(items)
-    if encerram_30d:
-        items = analytics.filtrar_encerram_30d(items)
-    return {"count": len(items), "items": items[:limit]}
+    items_filt = df_filt.to_dict(orient="records")
+    # NaN → None for JSON
+    items_clean = []
+    for it in items_filt[:limit]:
+        items_clean.append({
+            k: (None if (v is None or (isinstance(v, float) and str(v) == 'nan')) else v)
+            for k, v in it.items()
+        })
+    return {"count": len(items_filt), "items": items_clean}
 
 
 @app.get("/api/kpis")
@@ -77,19 +91,20 @@ def get_kpis(
     concelho: Optional[List[str]] = Query(None),
     categoria: Optional[List[str]] = Query(None),
 ):
-    items = loader.load_all()
-    items = analytics.aplicar_filtros(
-        items,
+    items, df = _load_items()
+    df_filt = analytics.aplicar_filtros(
+        df,
         distritos=distrito,
         concelhos=concelho,
         categorias=categoria,
     )
+    kpis = analytics.kpis_gerais(df_filt)
     return {
-        "total": len(items),
-        "novos_24h": len(analytics.filtrar_novos_24h(items)),
-        "valor_minimo_total": analytics.somar_valor_minimo(items),
-        "poupanca_potencial": analytics.somar_poupanca(items),
-        "desconto_medio_pct": analytics.desconto_medio(items),
-        "distritos": analytics.contar_distritos(items),
-        "encerram_7d": len(analytics.filtrar_encerram_7d(items)),
+        "total": kpis.get("total_leiloes", 0),
+        "novos_24h": kpis.get("novos_24h", 0),
+        "valor_minimo_total": kpis.get("valor_total_minimo", 0),
+        "poupanca_potencial": kpis.get("poupanca_total_estimada", 0),
+        "desconto_medio_pct": kpis.get("desconto_medio_pct", 0),
+        "distritos": kpis.get("distritos_cobertos", 0),
+        "encerram_7d": kpis.get("encerram_prox_7d", 0),
     }
