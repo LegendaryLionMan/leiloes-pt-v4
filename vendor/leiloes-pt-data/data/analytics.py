@@ -12,7 +12,16 @@ def para_dataframe(leiloes: List[Dict]) -> pd.DataFrame:
     df["data_publicacao"] = pd.to_datetime(df["data_publicacao"])
     df["data_encerramento"] = pd.to_datetime(df["data_encerramento"])
     df["data_abertura"] = pd.to_datetime(df["data_abertura"])
-    df["poupanca_potencial"] = df["valor_mercado_estimado"] - df["valor_minimo"]
+    # poupanca_potencial = savings vs the HIGHER of (lance_atual, valor_minimo)
+    # - No bid yet: savings = valor_mercado - valor_minimo (platform floor, ~15%)
+    # - Bid above floor: savings = valor_mercado - lance_atual (user pays more, less savings)
+    # - Bid below floor: savings = valor_mercado - lance_atual (bargain — but bid will be rejected)
+    # Edge case: lance > valor_mercado means someone overpaid, savings = 0
+    df["_piso"] = df[["lance_atual", "valor_minimo"]].max(axis=1)
+    df["poupanca_potencial"] = (
+        df["valor_mercado_estimado"] - df["_piso"]
+    ).clip(lower=0)
+    df.drop(columns=["_piso"], inplace=True)
     df["poupanca_pct"] = (df["poupanca_potencial"] / df["valor_mercado_estimado"] * 100).round(1)
     df["desconto_vs_avaliacao_pct"] = (
         (1 - df["valor_minimo"] / df["valor_avaliacao"]) * 100
@@ -170,7 +179,7 @@ def aplicar_filtros(
     if _vmin > 0 or _vmax < float("inf"):
         if "valor_minimo" in out.columns:
             vm = out["valor_minimo"].fillna(0)
-            out = out[vm.between(_vmin, _vmax)]  # VALE SEMPRE
+            out = out[vm.between(_vmin, _vmax)]  # applied only if _vmin>0 or _vmax<inf
     if so_novos_24h and "novo_24h" in out.columns:
         out = out[out["novo_24h"]]
     if so_encerram_prox_30d and "dias_ate_encerramento" in out.columns:
@@ -181,7 +190,7 @@ def aplicar_filtros(
         for col in ["descricao", "concelho", "freguesia", "titulo"]:
             if col in out.columns:
                 mask |= out[col].astype(str).str.contains(texto_livre, case=False, na=False)
-        out = out[mask]  # VALE SEMPRE
+        out = out[mask]  # text search mask — only entered when texto_livre truthy
     ascending = (ordem == "asc")
     if ordenar_por in out.columns:
         out = out.sort_values(ordenar_por, ascending=ascending)

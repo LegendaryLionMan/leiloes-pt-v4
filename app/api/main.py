@@ -310,7 +310,9 @@ def get_leilao(item_id: int):
 @app.get("/api/top")
 def get_top(
     top_n: int = Query(15, ge=1, le=100),
-    min_desconto_pct: float = Query(20.0, ge=0, le=100),
+    # Default 0 (was 20.0) — e-leilões.pt enforces valorMinimo = valorBase × 0.85,
+    # so max possible desconto is ~15%. Default 20 returned an empty list 100% of the time.
+    min_desconto_pct: float = Query(0.0, ge=0, le=100),
     distrito: Optional[List[str]] = Query(None),
     categoria: Optional[List[str]] = Query(None),
 ):
@@ -450,6 +452,7 @@ def export_csv(
     valor_max: Optional[float] = Query(None),
     novos_24h: bool = False,
     encerram_30d: bool = False,
+    min_desconto_pct: Optional[float] = Query(None, ge=0, le=100),
     texto_livre: Optional[str] = Query(None),
 ):
     items, df = _load_items()
@@ -465,6 +468,8 @@ def export_csv(
         so_encerram_prox_30d=encerram_30d,
         texto_livre=texto_livre or "",
     )
+    if min_desconto_pct is not None:
+        df_filt = df_filt[df_filt["poupanca_pct"] >= min_desconto_pct]
     records = df_filt.to_dict(orient="records")
     # Pick user-facing columns
     cols = [

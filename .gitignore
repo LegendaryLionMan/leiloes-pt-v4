@@ -9,26 +9,22 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
-.env
 .pytest_cache/
 
-# Data
-data/leiloes.db
-data/leiloes.db-journal
-data/leiloes.db-wal
-data/leiloes.db-shm
-vendor/leiloes-pt-data/data/cache/
+# Data — keep cache/ for git (3MB JSON is small and lets devs diff snapshots)
+# but exclude alerts.db + sqlite3 WAL files
+vendor/leiloes-pt-data/cache/alertas.db*
+vendor/leiloes-pt-data/data/cache/   # legacy path
 
 # IDE
 .vscode/
-.idea/# Dev-only
+.idea/
 screenshots/
 test-results/
 playwright-report/
 backend.log
 main.py.bak
-# Vendored cache (large)
-vendor/leiloes-pt-data/cache/
 
 # Backend logs
-logs/
+logs/debug.cjs
+verify.cjs

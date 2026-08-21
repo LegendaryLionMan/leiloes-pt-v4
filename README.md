@@ -8,10 +8,10 @@ Lovable-style React + Vite + Tailwind dashboard for Portuguese government auctio
 - TanStack Query v5 for server state
 - React Router 6 for routing
 - Recharts for charts, react-leaflet for maps
-- FastAPI + SQLite (better-sqlite3 + Drizzle ORM) for backend
+- FastAPI + stdlib `sqlite3` for alerts (alerts.db)
 - Vendored Python data pipeline from v3 (e-leilões.pt crawler + analytics)
 
-**Local-first, no cloud.** SQLite at `data/leiloes.db`, no Docker, no Supabase.
+**Local-first, no cloud.** SQLite alerts at `vendor/leiloes-pt-data/cache/alertas.db`, no Docker, no Supabase.
 
 ## Quick start
 
@@ -20,7 +20,7 @@ Lovable-style React + Vite + Tailwind dashboard for Portuguese government auctio
 npm install
 npm run dev
 
-# 2. Backend (port 8000) — in a separate terminal
+# 2. Backend (port 8001) — in a separate terminal
 npm run api:install
 npm run api
 
@@ -29,12 +29,12 @@ git subtree add --prefix vendor/leiloes-pt-data \
   https://github.com/LegendaryLionMan/leiloes-pt.git main --squash
 ```
 
-Then open http://localhost:5180/ and the SPA proxies `/api/*` to FastAPI on `:8000`.
+Then open http://localhost:5180/ and the SPA proxies `/api/*` to FastAPI on `:8001`.
 
 ## Ports
 
 - **5180** — Vite dev server (the SPA)
-- **8000** — FastAPI backend (proxied via `/api` in vite.config.ts)
+- **8001** — FastAPI backend (proxied via `/api` in vite.config.ts)
 - No conflict with v3 Streamlit at `:8765`
 
 ## Project structure
@@ -42,19 +42,19 @@ Then open http://localhost:5180/ and the SPA proxies `/api/*` to FastAPI on `:80
 ```
 leiloes-pt-v4/
 ├── src/
-│   ├── App.tsx              # Main shell with side nav + 6 routes
+│   ├── App.tsx              # Main shell with side nav + 5 routes
 │   ├── main.tsx             # React entry point
-│   ├── routes/              # 6 tab views (Lista, Mapa, Visualizações, Top, Criar alerta, Matches)
-│   ├── components/          # TopBar, SideNav, FilterBar, KPICard
-│   ├── lib/                 # API client, filters, utils
-│   ├── db/                  # Drizzle schema + client
+│   ├── routes/              # 5 tab views (Lista, Mapa, Visualizações, Alertas, Matches)
+│   │                        # + CriarAlerta (sub-page at /alerta/new)
+│   ├── components/          # KPICard
+│   ├── lib/                 # API client, Drawer, ui primitives, filters, utils
 │   └── test/                # Vitest setup
 ├── app/
-│   └── api/                 # FastAPI backend
+│   └── api/                 # FastAPI backend (Python)
 │       ├── main.py          # /api/leiloes, /api/kpis, /api/alertas CRUD
-│       └── db/              # Drizzle ORM models
+│       └── (no DB code — stdlib sqlite3 inlined in main.py)
 ├── vendor/
 │   └── leiloes-pt-data/     # Vendored v3 Python data layer (subtree)
-└── public/
-    └── data/                # Static JSON snapshots for the SPA
+│       └── cache/           # leiloes_reais.json (crawler output) + alertas.db
+└── e2e/                     # Playwright tests (smoke + ui-ux-validation)
 ```

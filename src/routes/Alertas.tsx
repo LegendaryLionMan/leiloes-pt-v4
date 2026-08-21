@@ -9,7 +9,7 @@ export default function Alertas() {
   const qc = useQueryClient();
   const [showInactive, setShowInactive] = useState(false);
   const alerts = useQuery({
-    queryKey: ['alertas'],
+    queryKey: ['alertas', 'page'],
     queryFn: () => fetchAlertas(false),
   });
   const matches = useQuery({
@@ -21,7 +21,7 @@ export default function Alertas() {
     mutationFn: (id: string) => toggleAlerta(id),
     onSuccess: () => {
       toast('Alerta atualizado');
-      qc.invalidateQueries({ queryKey: ['alertas'] });
+      qc.invalidateQueries({ queryKey: ['alertas'] });  // invalidates BOTH 'bell' + 'page'
       qc.invalidateQueries({ queryKey: ['matches'] });
     },
   });
@@ -30,7 +30,7 @@ export default function Alertas() {
     mutationFn: (id: string) => deleteAlerta(id),
     onSuccess: () => {
       toast('Alerta removido');
-      qc.invalidateQueries({ queryKey: ['alertas'] });
+      qc.invalidateQueries({ queryKey: ['alertas'] });  // invalidates BOTH 'bell' + 'page'
       qc.invalidateQueries({ queryKey: ['matches'] });
     },
   });

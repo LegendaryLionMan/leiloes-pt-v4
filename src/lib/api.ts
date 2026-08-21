@@ -19,14 +19,21 @@ export type Leilao = {
   valor_avaliacao?: number;
   valor_minimo?: number;
   valor_mercado_estimado?: number;
-  poupanca_potencial?: number;
-  poupanca_pct?: number;
+  lance_atual?: number;       // current top bid; 0 if no bids
+  poupanca_potencial?: number; // platform savings vs the higher of (lance, min)
+  poupanca_pct?: number;       // % discount vs valor_mercado
+  desconto_vs_avaliacao_pct?: number; // % discount vs valor_avaliacao
   data_publicacao?: string;
   data_encerramento?: string;
+  data_abertura?: string;
   dias_ate_encerramento?: number;
   estado?: string;
+  praca?: string;             // "1ª Praça", "2ª Praça", or "Cancelado"
   modalidade?: string;
-  link?: string;
+  fonte?: string;             // "E-LEILÕES"
+  link?: string;              // /leilao/{id}
+  foto?: string;              // capa filename (relative)
+  novo_24h?: boolean;
 };
 
 export type KPIs = {

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
-  ChevronDown, ChevronUp, Download, ExternalLink, Filter, ListChecks,
-  Search, SlidersHorizontal, Trash2, TrendingDown,
+  ChevronDown, ChevronUp, Copy, Download, ExternalLink, Filter, ListChecks,
+  Search, SlidersHorizontal, Trash2,
 } from 'lucide-react';
 import {
   fetchFacets, fetchKPIs, fetchLeiloes, csvExportUrl,
@@ -173,12 +173,14 @@ export default function Lista() {
         <Pill emoji="💰" label={
           filters.min_desconto_pct != null && filters.min_desconto_pct > 0
             ? `Poupança ≥${filters.min_desconto_pct}%`
-            : 'Poupança ≥30%'
+            : 'Poupança ≥5%'
         }
               onClick={() => {
-                // Cycle through 0 → 30 → 50 → 70
+                // Cycle 0 → 5 → 10 → 15 → 0
+                // e-leilões.pt enforces valorMinimo = valorBase × 0.85, so max desconto is ~15%.
+                // (70% was unreachable — see v0.3.2 CHANGELOG.)
                 const cur = filters.min_desconto_pct ?? 0;
-                const next = cur >= 70 ? 0 : cur === 0 ? 30 : cur === 30 ? 50 : 70;
+                const next = cur === 0 ? 5 : cur === 5 ? 10 : cur === 10 ? 15 : 0;
                 setFilters((f) => ({ ...f, min_desconto_pct: next || undefined }));
               }}
               active={(filters.min_desconto_pct ?? 0) > 0}
@@ -242,19 +244,20 @@ export default function Lista() {
                       Poupança mínima: <strong className="text-slate-900 dark:text-slate-100">
                         {filters.min_desconto_pct ?? 0}%
                       </strong>
+                      <span className="ml-2 text-xs text-slate-400">(máx ~15% — regra do e-leilões.pt)</span>
                     </p>
                     <input
                       type="range"
                       min="0"
-                      max="70"
+                      max="15"
                       step="5"
-                      value={filters.min_desconto_pct ?? 0}
+                      value={Math.min(filters.min_desconto_pct ?? 0, 15)}
                       onChange={(e) => setFilters((f) => ({ ...f, min_desconto_pct: Number(e.target.value) || undefined }))}
                       className="w-full accent-brand-teal"
                       aria-label="Slider de poupança mínima"
                     />
                     <div className="flex justify-between text-xs text-slate-400 mt-1">
-                      <span>0%</span><span>70%</span>
+                      <span>0%</span><span>15%</span>
                     </div>
                   </div>
                 </>
@@ -395,36 +398,36 @@ export default function Lista() {
                     </td>
                     <td className={cx('px-3 text-right tabular-nums font-semibold', density === 'compact' ? 'py-1.5' : 'py-2.5')}>{formatEUR(it.valor_minimo)}</td>
                     <td className={cx('px-3 text-right tabular-nums', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
-                      {it.lance_atual > 0 ? (
-                        <span className="text-brand-teal font-semibold">{formatEUR(it.lance_atual)}</span>
+                      {(it.lance_atual ?? 0) > 0 ? (
+                        <span className="text-brand-teal font-semibold">{formatEUR(it.lance_atual ?? 0)}</span>
                       ) : (
                         <span className="text-slate-400">—</span>
                       )}
                     </td>
                     <td className={cx('px-3 text-right tabular-nums text-slate-600 dark:text-slate-400', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
-                      {formatEUR(it.valor_avaliacao)}
+                      {formatEUR(it.valor_avaliacao ?? 0)}
                     </td>
                     <td className={cx('px-3 text-right tabular-nums font-medium', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
-                      {it.lance_atual > 0 ? (
+                      {(it.lance_atual ?? 0) > 0 ? (
                         <span className={cx(
-                          it.lance_atual >= it.valor_minimo ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                          (it.lance_atual ?? 0) >= (it.valor_minimo ?? 0) ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
                         )}>
-                          {it.lance_atual >= it.valor_minimo ? '+' : ''}
-                          {(((it.lance_atual - it.valor_minimo) / it.valor_minimo) * 100).toFixed(1).replace('.', ',')}%
+                          {(it.lance_atual ?? 0) >= (it.valor_minimo ?? 0) ? '+' : ''}
+                          {(((it.lance_atual ?? 0) - (it.valor_minimo ?? 0)) / (it.valor_minimo ?? 1) * 100).toFixed(1).replace('.', ',')}%
                         </span>
                       ) : (
                         <span className="text-slate-400">—</span>
                       )}
                     </td>
                     <td className={cx('px-3 text-right tabular-nums', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
-                      {it.dias_ate_encerramento > 0 ? (
+                      {(it.dias_ate_encerramento ?? -9999) > 0 ? (
                         <span className={cx(
-                          it.dias_ate_encerramento <= 7 ? 'text-red-600 dark:text-red-400 font-semibold' :
-                          it.dias_ate_encerramento <= 30 ? 'text-amber-600 dark:text-amber-400' :
+                          (it.dias_ate_encerramento ?? 0) <= 7 ? 'text-red-600 dark:text-red-400 font-semibold' :
+                          (it.dias_ate_encerramento ?? 0) <= 30 ? 'text-amber-600 dark:text-amber-400' :
                           'text-slate-600 dark:text-slate-400'
                         )}>{it.dias_ate_encerramento}d</span>
-                      ) : it.dias_ate_encerramento <= 0 && it.dias_ate_encerramento > -30 ? (
-                        <span className="text-slate-400">−{Math.abs(it.dias_ate_encerramento)}d</span>
+                      ) : (it.dias_ate_encerramento ?? -9999) <= 0 && (it.dias_ate_encerramento ?? -9999) > -30 ? (
+                        <span className="text-slate-400">−{Math.abs(it.dias_ate_encerramento ?? 0)}d</span>
                       ) : '—'}
                     </td>
                     <td className={cx('px-3', density === 'compact' ? 'py-1.5' : 'py-2.5')}>
@@ -594,12 +597,20 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Stat label="Valor mínimo" value={formatEUR(item.valor_minimo)} />
-            <Stat label="Valor avaliação" value={formatEUR(item.valor_avaliacao)} />
-            <Stat label="Lance atual" value={item.lance_atual > 0 ? formatEUR(item.lance_atual) : '—'} highlight={item.lance_atual > 0 ? 'emerald' : undefined} />
-            <Stat label="Desconto vs mín." value={item.lance_atual > 0
-              ? `${(((item.lance_atual - item.valor_minimo) / item.lance_atual) * 100).toFixed(1).replace('.', ',')}%`
-              : '—'} subtitle={item.lance_atual > 0 ? 'lance vs mínimo' : 'sem licitação'} />
+            <Stat label="Valor mínimo" value={formatEUR(item.valor_minimo ?? 0)} />
+            <Stat label="Valor avaliação" value={formatEUR(item.valor_avaliacao ?? 0)} />
+            <Stat label="Lance atual" value={(item.lance_atual ?? 0) > 0 ? formatEUR(item.lance_atual ?? 0) : '—'} highlight={(item.lance_atual ?? 0) > 0 ? 'emerald' : undefined} />
+            <Stat label="Δ Lance (vs mín.)" value={(item.lance_atual ?? 0) > 0
+              ? `${(item.lance_atual ?? 0) < (item.valor_minimo ?? 0) ? '−' : '+'}${Math.abs((((item.lance_atual ?? 0) - (item.valor_minimo ?? 0)) / (item.valor_minimo ?? 1)) * 100).toFixed(1).replace('.', ',')}%`
+              : '—'}
+              highlight={(item.lance_atual ?? 0) > 0
+                ? ((item.lance_atual ?? 0) < (item.valor_minimo ?? 0) ? 'emerald' : 'amber')
+                : undefined}
+              subtitle={(item.lance_atual ?? 0) > 0
+                ? ((item.lance_atual ?? 0) < (item.valor_minimo ?? 0)
+                    ? 'lance abaixo do mínimo (boa compra)'
+                    : 'lance acima do mínimo')
+                : 'sem licitação'} />
           </div>
 
           <div>
@@ -638,13 +649,21 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
             </div>
           )}
 
-          {item.link && (
-            <a href={`https://www.e-leilões.pt/`} target="_blank" rel="noopener noreferrer"
-               onClick={() => navigator.clipboard?.writeText(item.referencia ?? '')}
+          {item.referencia && (
+            <a href={`https://www.e-leiloes.pt/?search=${encodeURIComponent(item.referencia)}`}
+               target="_blank" rel="noopener noreferrer"
                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-teal text-white font-medium hover:opacity-90 min-h-[44px]"
-               title="Abre o e-leilões.pt e procura pela referência (copiada automaticamente)">
-              <ExternalLink size={16} /> Abrir e-leilões.pt
+               title={`Procura a referência ${item.referencia} no e-leilões.pt`}>
+              <ExternalLink size={16} /> Abrir no e-leilões.pt
             </a>
+          )}
+          {item.referencia && (
+            <button type="button"
+               onClick={() => navigator.clipboard?.writeText(item.referencia ?? '')}
+               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 min-h-[44px]"
+               title="Copia a referência para a área de transferência">
+              <Copy size={16} /> Copiar referência
+            </button>
           )}
           <style>{`@keyframes drawerSlideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
         </div>
@@ -653,7 +672,12 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
   );
 }
 
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: 'emerald' | 'amber' }) {
+function Stat({ label, value, highlight, subtitle }: {
+  label: string;
+  value: string;
+  highlight?: 'emerald' | 'amber';
+  subtitle?: string;
+}) {
   const cls = highlight === 'emerald'
     ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
     : highlight === 'amber'
@@ -663,6 +687,7 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
     <div className={cx('rounded-lg border p-3', cls)}>
       <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
       <p className="text-base font-semibold tabular-nums mt-0.5">{value}</p>
+      {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
     </div>
   );
 }

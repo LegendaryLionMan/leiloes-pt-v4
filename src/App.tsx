@@ -64,7 +64,7 @@ function CacheBadge() {
 }
 
 function AlertsBell() {
-  const alerts = useQuery({ queryKey: ['alertas'], queryFn: () => fetchAlertas(true) });
+  const alerts = useQuery({ queryKey: ['alertas', 'bell'], queryFn: () => fetchAlertas(true) });
   const activeCount = alerts.data?.count ?? 0;
   return (
     <span className="relative inline-flex">

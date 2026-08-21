@@ -74,9 +74,13 @@ export function cx(...parts: (string | false | null | undefined)[]): string {
 // Shared UI building blocks
 // ============================================================
 
-export function Card({ children, className }: { children: ReactNode; className?: string }) {
+export function Card({ children, className, style }: {
+  children: ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <div className={cx(
+    <div style={style} className={cx(
       'rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm',
       className,
     )}>
