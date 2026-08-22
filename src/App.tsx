@@ -10,6 +10,7 @@ import Matches from './routes/Matches';
 import Alertas from './routes/Alertas';
 import { fetchCacheInfo, refreshCache, fetchAlertas } from './lib/api';
 import { ToastContainer, emitToast } from './components/Toast';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { cx } from '@/lib/ui';
 
 const tabs = [
@@ -193,7 +194,9 @@ export default function App() {
 
           <ThemeToggle />
         </div>
-      </header>
+      
+              <LanguageSwitcher />
+            </header>
 
       <div className="flex flex-1">
         {/* Sidebar */}

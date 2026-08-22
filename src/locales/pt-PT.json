@@ -1,0 +1,110 @@
+{
+  "app": {
+    "name": "Leilões PT",
+    "tagline": "Painel de leilões eletrónicos em Portugal"
+  },
+  "nav": {
+    "lista": "Lista",
+    "mapa": "Mapa",
+    "visualizacoes": "Visualizações",
+    "alertas": "Alertas",
+    "criar_alerta": "Criar alerta",
+    "settings": "Definições"
+  },
+  "kpis": {
+    "total_scope": "Total no scope",
+    "novos_24h": "Novos (24h)",
+    "valor_minimo_total": "Valor mínimo total",
+    "poupanca_potencial": "Poupança potencial",
+    "distritos": "Distritos",
+    "encerram_7d": "Encerram (≤7d)"
+  },
+  "filtros": {
+    "novos_24h": "Só novos 24h",
+    "encerram_30d": "Encerram ≤30d",
+    "tavira": "Tavira",
+    "poupanca_30": "Poupança ≥30%",
+    "limpar": "Limpar tudo"
+  },
+  "lista": {
+    "titulo": "Lista de leilões",
+    "mostrando": "A mostrar {{count}} resultados",
+    "pagina": "Página {{page}} de {{total}}",
+    "sem_resultados": "Sem resultados para os filtros aplicados.",
+    "ordenar_por": "Ordenar por",
+    "col_titulo": "Imóvel",
+    "col_distrito": "Distrito",
+    "col_valor": "Valor mínimo",
+    "col_poupanca": "Poupança",
+    "col_encerramento": "Encerramento",
+    "ver_detalhes": "Ver detalhes"
+  },
+  "drawer": {
+    "titulo": "Detalhes do leilão",
+    "referencia": "Referência",
+    "categoria": "Categoria",
+    "distrito": "Distrito",
+    "concelho": "Concelho",
+    "freguesia": "Freguesia",
+    "valor_minimo": "Valor mínimo",
+    "valor_avaliacao": "Valor avaliação",
+    "lance_atual": "Lance atual",
+    "valor_mercado": "Valor mercado",
+    "poupanca": "Poupança",
+    "delta_lance": "Δ Lance (vs mín.)",
+    "encerramento": "Encerramento",
+    "estado": "Estado",
+    "modalidade": "Modalidade",
+    "praca": "Praça",
+    "fonte": "Fonte",
+    "abrir_origem": "Abrir no {{fonte}}",
+    "copiar_ref": "Copiar referência",
+    "fechar": "Fechar"
+  },
+  "alertas": {
+    "titulo": "Os meus alertas",
+    "novo": "Novo alerta",
+    "nome": "Nome",
+    "sem_alertas": "Ainda não tem alertas. Crie um para começar.",
+    "eliminar": "Eliminar",
+    "ativar": "Ativar",
+    "desativar": "Desativar",
+    "criar": "Criar",
+    "criar_sucesso": "Alerta criado",
+    "criar_erro": "Erro ao criar alerta"
+  },
+  "mapa": {
+    "titulo": "Mapa de distritos",
+    "legenda": "Tamanho da bolha = nº de leilões · Cor = % desconto médio",
+    "top_distritos": "TOP DISTRITOS",
+    "top_concelhos": "TOP CONCELHOS",
+    "voltar": "Voltar aos distritos",
+    "mostrando_concelhos": "A mostrar concelhos de {{distrito}}. {{count}} concelhos · {{leiloes}} leilões."
+  },
+  "visualizacoes": {
+    "titulo": "Visualizações",
+    "por_categoria": "Por categoria",
+    "por_distrito": "Por distrito",
+    "timeline": "Cronograma",
+    "scatter": "Lance vs Mínimo",
+    "por_modalidade": "Por modalidade",
+    "valor_por_categoria": "Valor por categoria"
+  },
+  "common": {
+    "a_carregar": "A carregar...",
+    "erro": "Erro",
+    "sucesso": "Sucesso",
+    "cancelar": "Cancelar",
+    "confirmar": "Confirmar",
+    "sim": "Sim",
+    "nao": "Não",
+    "voltar": "Voltar",
+    "aplicar": "Aplicar",
+    "lingua": "Idioma"
+  },
+  "cache": {
+    "stale": "Cache stale",
+    "stale_msg": "Os dados foram refrescados há {{age}}; valores podem estar desactualizados.",
+    "refrescar": "Refrescar agora"
+  }
+}

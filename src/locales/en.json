@@ -1,0 +1,110 @@
+{
+  "app": {
+    "name": "Auctions PT",
+    "tagline": "Portuguese electronic auctions dashboard"
+  },
+  "nav": {
+    "lista": "List",
+    "mapa": "Map",
+    "visualizacoes": "Charts",
+    "alertas": "Alerts",
+    "criar_alerta": "New alert",
+    "settings": "Settings"
+  },
+  "kpis": {
+    "total_scope": "Total in scope",
+    "novos_24h": "New (24h)",
+    "valor_minimo_total": "Total minimum value",
+    "poupanca_potencial": "Potential savings",
+    "distritos": "Districts",
+    "encerram_7d": "Closing (≤7d)"
+  },
+  "filtros": {
+    "novos_24h": "Only new 24h",
+    "encerram_30d": "Closing ≤30d",
+    "tavira": "Tavira",
+    "poupanca_30": "Savings ≥30%",
+    "limpar": "Clear all"
+  },
+  "lista": {
+    "titulo": "Auctions list",
+    "mostrando": "Showing {{count}} results",
+    "pagina": "Page {{page}} of {{total}}",
+    "sem_resultados": "No results for the applied filters.",
+    "ordenar_por": "Sort by",
+    "col_titulo": "Property",
+    "col_distrito": "District",
+    "col_valor": "Minimum value",
+    "col_poupanca": "Savings",
+    "col_encerramento": "Closing",
+    "ver_detalhes": "View details"
+  },
+  "drawer": {
+    "titulo": "Auction details",
+    "referencia": "Reference",
+    "categoria": "Category",
+    "distrito": "District",
+    "concelho": "Municipality",
+    "freguesia": "Parish",
+    "valor_minimo": "Minimum value",
+    "valor_avaliacao": "Appraisal value",
+    "lance_atual": "Current bid",
+    "valor_mercado": "Market value",
+    "poupanca": "Savings",
+    "delta_lance": "Δ Bid (vs min)",
+    "encerramento": "Closing",
+    "estado": "Status",
+    "modalidade": "Modality",
+    "praca": "Session",
+    "fonte": "Source",
+    "abrir_origem": "Open in {{fonte}}",
+    "copiar_ref": "Copy reference",
+    "fechar": "Close"
+  },
+  "alertas": {
+    "titulo": "My alerts",
+    "novo": "New alert",
+    "nome": "Name",
+    "sem_alertas": "No alerts yet. Create one to get started.",
+    "eliminar": "Delete",
+    "ativar": "Enable",
+    "desativar": "Disable",
+    "criar": "Create",
+    "criar_sucesso": "Alert created",
+    "criar_erro": "Failed to create alert"
+  },
+  "mapa": {
+    "titulo": "District map",
+    "legenda": "Bubble size = nº of auctions · Color = avg. discount %",
+    "top_distritos": "TOP DISTRICTS",
+    "top_concelhos": "TOP MUNICIPALITIES",
+    "voltar": "Back to districts",
+    "mostrando_concelhos": "Showing municipalities of {{distrito}}. {{count}} municipalities · {{leiloes}} auctions."
+  },
+  "visualizacoes": {
+    "titulo": "Charts",
+    "por_categoria": "By category",
+    "por_distrito": "By district",
+    "timeline": "Timeline",
+    "scatter": "Bid vs Minimum",
+    "por_modalidade": "By modality",
+    "valor_por_categoria": "Value by category"
+  },
+  "common": {
+    "a_carregar": "Loading...",
+    "erro": "Error",
+    "sucesso": "Success",
+    "cancelar": "Cancel",
+    "confirmar": "Confirm",
+    "sim": "Yes",
+    "nao": "No",
+    "voltar": "Back",
+    "aplicar": "Apply",
+    "lingua": "Language"
+  },
+  "cache": {
+    "stale": "Cache stale",
+    "stale_msg": "Data was refreshed {{age}} ago; values may be outdated.",
+    "refrescar": "Refresh now"
+  }
+}

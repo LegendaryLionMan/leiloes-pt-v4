@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ChevronDown, ChevronUp, Copy, Download, ExternalLink, Filter, ListChecks,
   Search, SlidersHorizontal, Trash2,
@@ -21,6 +22,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 const PAGE_SIZE = 25;
 
 export default function Lista() {
+  const { t } = useTranslation();
   const [search, setSearch] = useSearchParams();
 
   // Pull initial filter from URL for shareable links
@@ -277,13 +279,13 @@ export default function Lista() {
       {kpis.isError && <ErrorState message="Falha a carregar KPIs" onRetry={() => kpis.refetch()} />}
       {kpis.data && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <KPICard label="Total no scope" value={formatNumber(kpis.data.total)} icon="📦" />
-          <KPICard label="Novos (24h)" value={formatNumber(kpis.data.novos_24h)} icon="🆕" delta="+24h" />
-          <KPICard label="Valor mínimo total" value={formatEUR(kpis.data.valor_minimo_total, { compact: true })} icon="💶" />
-          <KPICard label="Poupança potencial" value={formatEUR(kpis.data.poupanca_potencial, { compact: true })}
+          <KPICard label={t("kpis.total_scope", "Total no scope")} value={formatNumber(kpis.data.total)} icon="📦" />
+          <KPICard label={t("kpis.novos_24h", "Novos (24h)")} value={formatNumber(kpis.data.novos_24h)} icon="🆕" delta="+24h" />
+          <KPICard label={t("kpis.valor_minimo_total", "Valor mínimo total")} value={formatEUR(kpis.data.valor_minimo_total, { compact: true })} icon="💶" />
+          <KPICard label={t("kpis.poupanca_potencial", "Poupança potencial")} value={formatEUR(kpis.data.poupanca_potencial, { compact: true })}
                     delta={`${formatPct(kpis.data.desconto_medio_pct, 1)}`} icon="💰" accent="#10b981" />
           <KPICard label="Distritos" value={formatNumber(kpis.data.distritos)} icon="🗺️" />
-          <KPICard label="Encerram (≤7d)" value={formatNumber(kpis.data.encerram_7d)} delta="urgente" icon="⏰" accent="#f59e0b" />
+          <KPICard label={t("kpis.encerram_7d", "Encerram (≤7d)")} value={formatNumber(kpis.data.encerram_7d)} delta="urgente" icon="⏰" accent="#f59e0b" />
         </div>
       )}
       {!kpis.data && !kpis.isError && (
