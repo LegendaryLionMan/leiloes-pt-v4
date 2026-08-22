@@ -163,7 +163,7 @@ Pure ASGI middleware injects:
 | GET | `/api/health` | no-store | Health + error buffer (v0.4.8) |
 | POST | `/api/test/error` | n/a | Test exception handler (v0.4.8) |
 
-## Endpoints (22)
+## Endpoints
 See [ARCHITECTURE.md](ARCHITECTURE.md) for full endpoint catalog with auth, caching, and rate-limit policies.
 
 ## Testing

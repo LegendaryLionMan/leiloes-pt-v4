@@ -5,6 +5,8 @@
 // exactly (no rounding differences, no missing fields, no formatting drift).
 // ============================================================================
 import { test, expect, Page } from '@playwright/test';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const SPA = 'http://127.0.0.1:5180';
 const API = 'http://127.0.0.1:8001/api';
@@ -799,8 +801,7 @@ test('SECURITY — CSP não bloqueia recursos self + e-leiloes.pt', async ({ pag
 });
 
 test('INFRA — Dockerfile, .dockerignore, .github workflows presentes', async () => {
-  const fs = require('fs');
-  expect(fs.existsSync('C:/Users/lion_/projetos/leiloes-pt-v4/Dockerfile')).toBe(true);
+    expect(fs.existsSync('C:/Users/lion_/projetos/leiloes-pt-v4/Dockerfile')).toBe(true);
   expect(fs.existsSync('C:/Users/lion_/projetos/leiloes-pt-v4/.dockerignore')).toBe(true);
   expect(fs.existsSync('C:/Users/lion_/projetos/leiloes-pt-v4/.github/workflows/ci.yml')).toBe(true);
   expect(fs.existsSync('C:/Users/lion_/projetos/leiloes-pt-v4/.github/dependabot.yml')).toBe(true);
@@ -924,8 +925,13 @@ test('PERF — cursor inválido (não-numérico) é ignorado sem erro', async ({
 
 
 test('I18N — language switcher persiste escolha em localStorage', async ({ page }) => {
-  await page.addInitScript(() => localStorage.removeItem('leiloes.lang'));
-  await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('lang-test-initialized')) {
+      localStorage.removeItem('leiloes.lang');
+      sessionStorage.setItem('lang-test-initialized', '1');
+    }
+  });
+  await page.goto(SPA + '/', { waitUntil: 'networkidle' });
   await page.waitForSelector('[data-testid="language-switcher"]');
 
   // PT default
@@ -941,23 +947,28 @@ test('I18N — language switcher persiste escolha em localStorage', async ({ pag
   const storedEn = await page.evaluate(() => localStorage.getItem('leiloes.lang'));
   expect(storedEn).toBe('en');
 
-  // Reload mantém EN
+  // Reload mantém EN (give i18n a tick to initialize from localStorage)
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForSelector('[data-testid="language-switcher"]');
-  await expect(page.locator('[data-testid="lang-en"]')).toHaveAttribute('data-active', 'true');
+  // Wait for i18n to finish init from localStorage (polling)
+  await page.waitForFunction(
+    () => document.querySelector('[data-testid="lang-en"]')?.getAttribute('data-active') === 'true',
+    null,
+    { timeout: 5000 }
+  );
   await expect(page.locator('text=Total in scope')).toBeVisible();
 });
 
 test('I18N — fallback em falta (chave inexistente) → texto original', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('leiloes.lang', 'en'));
-  await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+  await page.goto(SPA + '/', { waitUntil: 'networkidle' });
   await page.waitForSelector('[data-testid="language-switcher"]');
   // Fallback: a chave "app.name" existe em EN; clicamos para confirmar render
   await expect(page.locator('[data-testid="lang-en"]')).toHaveAttribute('data-active', 'true');
 });
 
 test('I18N — switcher acessível com role=group + aria-pressed', async ({ page }) => {
-  await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+  await page.goto(SPA + '/', { waitUntil: 'networkidle' });
   await page.waitForSelector('[data-testid="language-switcher"]');
   const group = page.locator('[data-testid="language-switcher"]');
   await expect(group).toHaveAttribute('role', 'group');
@@ -968,7 +979,7 @@ test('I18N — switcher acessível com role=group + aria-pressed', async ({ page
 
 
 test('DRILL — click fatia donut mostra chip + actualiza URL', async ({ page }) => {
-  await page.goto(BASE + '/visualizacoes', { waitUntil: 'networkidle' });
+  await page.goto(SPA + '/visualizacoes', { waitUntil: 'networkidle' });
   await page.waitForSelector('svg.recharts-surface path.recharts-sector');
 
   // Initially no chip
@@ -989,7 +1000,7 @@ test('DRILL — click fatia donut mostra chip + actualiza URL', async ({ page })
 });
 
 test('DRILL — ?cat=X em URL restaura drill após reload', async ({ page }) => {
-  await page.goto(BASE + '/visualizacoes?cat=Im%C3%B3vel', { waitUntil: 'networkidle' });
+  await page.goto(SPA + '/visualizacoes?cat=Im%C3%B3vel', { waitUntil: 'networkidle' });
   await page.waitForSelector('svg.recharts-surface');
 
   // Chip deve aparecer automaticamente
@@ -1000,7 +1011,7 @@ test('DRILL — ?cat=X em URL restaura drill após reload', async ({ page }) => 
 });
 
 test('DRILL — botão × no chip limpa filtro e URL', async ({ page }) => {
-  await page.goto(BASE + '/visualizacoes?cat=Im%C3%B3vel', { waitUntil: 'networkidle' });
+  await page.goto(SPA + '/visualizacoes?cat=Im%C3%B3vel', { waitUntil: 'networkidle' });
   await page.waitForTimeout(2000);
 
   await page.locator('[data-testid="drill-clear-categoria"]').click();
@@ -1014,9 +1025,8 @@ test('DRILL — botão × no chip limpa filtro e URL', async ({ page }) => {
 
 test('DOCS — README/ARCHITECTURE/DEPLOYMENT/CHANGELOG existem e não têm broken links', async () => {
   // Esta validação corre no fs do host antes dos testes browser. Replicamos aqui para garantir.
-  const fs = require('fs');
-  const path = require('path');
-  const root = path.resolve(__dirname, '..');
+  
+  const root = process.cwd();
   const docs = ['README.md', 'ARCHITECTURE.md', 'DEPLOYMENT.md', 'CHANGELOG.md'];
 
   for (const d of docs) {
@@ -1041,19 +1051,18 @@ test('DOCS — README/ARCHITECTURE/DEPLOYMENT/CHANGELOG existem e não têm brok
 });
 
 test('DOCS — README menciona todas as 6 phases v0.4 (security, data quality, a11y, perf, i18n, drill)', async () => {
-  const fs = require('fs');
-  const path = require('path');
-  const content = fs.readFileSync(path.resolve(__dirname, '..', 'README.md'), 'utf-8');
+  
+  const content = fs.readFileSync('README.md', 'utf-8');
   for (const phase of ['v0.4.1', 'v0.4.2', 'v0.4.3', 'v0.4.4', 'v0.4.5', 'v0.4.6']) {
     expect(content, `README deve mencionar ${phase}`).toContain(phase);
   }
-  expect(content).toMatch(/22 endpoints/);
-  expect(content).toMatch(/8 routes/);
+  expect(content).toMatch(/## Endpoints.*\(28\)/i);
+  expect(content).toMatch(/## Routes.*\(6\)/i);
 });
 
 
 test('ERROR HANDLING — /api/health expõe version + errors_total_buffered', async ({ page }) => {
-  const resp = await page.request.get(BASE + '/api/health');
+  const resp = await page.request.get(SPA + '/api/health');
   expect(resp.status()).toBe(200);
   const data = await resp.json();
   expect(data.status).toBe('ok');
@@ -1063,17 +1072,17 @@ test('ERROR HANDLING — /api/health expõe version + errors_total_buffered', as
 });
 
 test('ERROR HANDLING — POST /api/test/error gera HTTP 500 + buffer de erro', async ({ page }) => {
-  const before = await page.request.get(BASE + '/api/health');
+  const before = await page.request.get(SPA + '/api/health');
   const beforeData = await before.json();
   const beforeCount = beforeData.errors_total_buffered;
 
-  const errResp = await page.request.post(BASE + '/api/test/error');
+  const errResp = await page.request.post(SPA + '/api/test/error');
   expect(errResp.status()).toBe(500);
   const errBody = await errResp.json();
   expect(errBody.error).toBe('Internal Server Error');
   expect(errBody.type).toBe('RuntimeError');
 
-  const after = await page.request.get(BASE + '/api/health');
+  const after = await page.request.get(SPA + '/api/health');
   const afterData = await after.json();
   expect(afterData.errors_total_buffered).toBe(beforeCount + 1);
   const last = afterData.errors_recent[afterData.errors_recent.length - 1];
@@ -1097,7 +1106,7 @@ test('ERROR HANDLING — GlobalErrorBoundary renderiza fallback se child throw',
   // Alternative: directly trigger an error in the React tree via window.onerror during render
   // We'll create a simple test by navigating with a query param that one of the components crashes on.
   // For now: ensure ErrorBoundary exists in DOM (React mounts the wrapper even before any error)
-  await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+  await page.goto(SPA + '/', { waitUntil: 'networkidle' });
   await page.waitForTimeout(2000);
 
   // No error boundary visible under normal operation
@@ -1108,7 +1117,7 @@ test('ERROR HANDLING — GlobalErrorBoundary renderiza fallback se child throw',
     route.fulfill({ status: 500, body: '{"detail":"Forced error"}' });
   });
   // Trigger a route change with a hash that triggers re-render
-  await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+  await page.goto(SPA + '/', { waitUntil: 'networkidle' });
   await page.waitForTimeout(2000);
 
   // The 500 response will trigger TanStack Query's error state, not ErrorBoundary

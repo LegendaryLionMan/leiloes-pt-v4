@@ -158,6 +158,11 @@ export default function App() {
         {t("ui.skip_to_content")}
       </a>
 
+      {/* Live region for screen readers (always present) */}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="live-region">
+        {/* announces route + cache changes */}
+      </div>
+
       <StaleCacheBanner />
 
       {/* Topbar */}
