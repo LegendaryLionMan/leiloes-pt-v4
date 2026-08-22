@@ -58,3 +58,34 @@ leiloes-pt-v4/
 │       └── cache/           # leiloes_reais.json (crawler output) + alertas.db
 └── e2e/                     # Playwright tests (smoke + ui-ux-validation)
 ```
+
+## Endpoints (FastAPI :8001)
+
+| Path | Cache | Notes |
+|---|---|---|
+| `GET /api/leiloes` | 30s | All filters + pagination + `?incluir_passados=true` |
+| `GET /api/leiloes/{id}` | 30s | Single item by id |
+| `GET /api/kpis` | **60s** | Active items only (excludes past) |
+| `GET /api/kpis/estados` | 30s | Estado counts (Em curso/Terminado/Cancelado/Agendado) |
+| `GET /api/top` | 30s | Top opportunities by absolute savings |
+| `GET /api/agregados/{distrito,concelho,categoria,modalidade}` | 30s | Aggregations |
+| `GET /api/mapa/{distritos,concelhos}` | 30s | Map data |
+| `GET /api/scatter/lance-vs-min` | 30s | Scatter (max_points 10-2000, min_desconto_pct 0-100) |
+| `GET /api/series/{publicacao,encerramento,timeline}` | 30s | Time series |
+| `GET /api/facets` | 30s | All distinct values for filters |
+| `GET /api/cache/info` | no-store | Cache freshness |
+| `POST /api/cache/refresh` | n/a | Trigger crawler |
+| `GET/POST/DELETE/PATCH /api/alertas[/id]` | 30s | SQLite CRUD for alerts |
+| `GET /api/export/leiloes.csv` | 30s | CSV export |
+
+All endpoints return `Content-Encoding: gzip` when client sends `Accept-Encoding: gzip`.
+
+## Versioning & changelog
+See [VERSION_HISTORY.md](VERSION_HISTORY.md) and [docs/decisions/](docs/decisions/) for rationale.
+
+## Accessibility
+WCAG 2.2 AA targets met:
+- 1.4.4 Resize text — viewport meta allows user zoom
+- 2.5.5 Target Size — interactive elements ≥ 44x44px (except inline buttons ≥ 36px)
+- 1.1.1 Non-text Content — images have descriptive `alt`
+- 2.4.1 Bypass Blocks — skip-to-content link on first Tab
