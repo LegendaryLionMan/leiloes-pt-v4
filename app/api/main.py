@@ -154,6 +154,51 @@ class CacheControlMiddleware:
 app.add_middleware(CacheControlMiddleware)
 
 
+class SecurityHeadersMiddleware:
+    """Pure ASGI middleware: CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy.
+
+    Content-Security-Policy: allow self + e-leiloes.pt CDN for images (fotos de leilões).
+    Não permite inline scripts (React compiled bundles são 'self', não inline).
+    """
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_security(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                # CSP restritivo mas permite o que precisamos
+                csp = (
+                    "default-src 'self'; "
+                    "img-src 'self' data: https://www.e-leiloes.pt https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com; "
+                    "style-src 'self' 'unsafe-inline'; "
+                    "script-src 'self'; "
+                    "connect-src 'self' http://127.0.0.1:8001 http://localhost:8001; "
+                    "frame-ancestors 'none'; "
+                    "base-uri 'self'; "
+                    "form-action 'self'"
+                )
+                security_headers = [
+                    (b"content-security-policy", csp.encode()),
+                    (b"strict-transport-security", b"max-age=31536000; includeSubDomains"),
+                    (b"x-frame-options", b"DENY"),
+                    (b"x-content-type-options", b"nosniff"),
+                    (b"referrer-policy", b"strict-origin-when-cross-origin"),
+                    (b"permissions-policy", b"geolocation=(), microphone=(), camera=()"),
+                ]
+                headers.extend(security_headers)
+                message["headers"] = headers
+            await send(message)
+        await self.app(scope, receive, send_with_security)
+
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+
 # --- Pydantic models ------------------------------------------------------
 
 class AlertIn(BaseModel):

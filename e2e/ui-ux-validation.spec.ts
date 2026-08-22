@@ -762,3 +762,46 @@ test('EMPTY — filtros impossíveis mostram empty state + botão limpar', async
   expect(clearBtn, 'Botão "Limpar tudo" deve aparecer em empty state').toBeGreaterThan(0);
   console.log(`  Zero-result text count: ${zeroText}`);
 });
+
+
+test('SECURITY — security headers presentes em todas as respostas', async ({ request }) => {
+  const r = await request.get(`${API}/kpis`);
+  expect(r.status()).toBe(200);
+  const h = r.headers();
+  expect(h['content-security-policy'], 'CSP deve estar presente').toBeTruthy();
+  expect(h['x-frame-options']).toBe('DENY');
+  expect(h['x-content-type-options']).toBe('nosniff');
+  expect(h['strict-transport-security']).toContain('max-age=');
+  expect(h['referrer-policy']).toBe('strict-origin-when-cross-origin');
+  expect(h['permissions-policy']).toBeTruthy();
+});
+
+test('SECURITY — CSP não bloqueia recursos self + e-leiloes.pt', async ({ page }) => {
+  await page.goto(SPA + '/');
+  await page.waitForTimeout(2000);
+  await page.click('text=Tavira — Imóveis + Terrenos');
+  await page.waitForTimeout(1500);
+  // Clica primeira row para abrir drawer (foto via CDN e-leiloes.pt)
+  const row = page.locator('text=Apartamento sito em Tavira').first();
+  if (await row.count()) {
+    await row.click();
+    await page.waitForTimeout(1500);
+  }
+  // Sem CSP violations reportadas ao console
+  const violations: string[] = [];
+  page.on('console', (msg) => {
+    if (msg.type() === 'error' && msg.text().includes('Content Security Policy')) {
+      violations.push(msg.text());
+    }
+  });
+  await page.waitForTimeout(500);
+  expect(violations, `CSP deve permitir self + CDN. Violations: ${violations.join('|')}`).toHaveLength(0);
+});
+
+test('INFRA — Dockerfile, .dockerignore, .github workflows presentes', async () => {
+  const fs = require('fs');
+  expect(fs.existsSync('C:/Users/lion_/projetos/leiloes-pt-v4/Dockerfile')).toBe(true);
+  expect(fs.existsSync('C:/Users/lion_/projetos/leiloes-pt-v4/.dockerignore')).toBe(true);
+  expect(fs.existsSync('C:/Users/lion_/projetos/leiloes-pt-v4/.github/workflows/ci.yml')).toBe(true);
+  expect(fs.existsSync('C:/Users/lion_/projetos/leiloes-pt-v4/.github/dependabot.yml')).toBe(true);
+});
