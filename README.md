@@ -168,8 +168,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for full endpoint catalog with auth, cach
 
 ## Testing
 ```bash
-npm run test:e2e          # 46 Playwright tests + 1 skipped
-cd app/api && pytest      # Python backend tests
+npm run test:e2e          # 58 Playwright tests + 1 skipped
+PYTHONPATH="" python -m pytest tests/   # 36 backend pytest tests
 ```
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment.
