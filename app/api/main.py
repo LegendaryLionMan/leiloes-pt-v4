@@ -58,11 +58,20 @@ ALERT_DB.parent.mkdir(parents=True, exist_ok=True)
 
 
 def _alert_conn() -> sqlite3.Connection:
-    """Per-thread sqlite3 connection (safe across FastAPI worker threads)."""
-    conn = sqlite3.connect(str(ALERT_DB), isolation_level=None)
+    """Per-thread sqlite3 connection (safe across FastAPI worker threads).
+
+    Configuração:
+    - isolation_level=None → autocommit (não precisa conn.commit() explícito)
+    - WAL mode → leituras concorrentes não bloqueiam escritas
+    - busy_timeout=5000ms → se DB locked, espera até 5s antes de falhar
+    - foreign_keys=ON → respeita FK constraints
+    """
+    conn = sqlite3.connect(str(ALERT_DB), isolation_level=None, timeout=5.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")
     conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA synchronous=NORMAL")
     return conn
 
 

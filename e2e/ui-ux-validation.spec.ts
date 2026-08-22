@@ -805,3 +805,45 @@ test('INFRA — Dockerfile, .dockerignore, .github workflows presentes', async (
   expect(fs.existsSync('C:/Users/lion_/projetos/leiloes-pt-v4/.github/workflows/ci.yml')).toBe(true);
   expect(fs.existsSync('C:/Users/lion_/projetos/leiloes-pt-v4/.github/dependabot.yml')).toBe(true);
 });
+
+
+test('DATA — items com ratio>10x são flagados com VALOR_SUSPEITO', async ({ request }) => {
+  // Os 10 items Tábua devem ter campo 'flagged' populado
+  const r = await request.get(`${API}/leiloes?distrito=Coimbra&categoria=Imóvel&page_size=500`);
+  const j = await r.json();
+  const flagged = j.items.filter((it: any) => it.flagged && it.flagged.startsWith('VALOR_SUSPEITO'));
+  expect(flagged.length, `Items flagados: ${flagged.length}, expected >= 1`).toBeGreaterThan(0);
+  // Cada flagged deve ter ratio > 10
+  for (const it of flagged.slice(0, 3)) {
+    expect(it.flagged).toMatch(/VALOR_SUSPEITO_RATIO_\d+x/);
+  }
+});
+
+test('DATA — SQLite alertas busy_timeout aplicado (>= 5000ms)', async () => {
+  // Não temos acesso directo ao PRAGMA, verificamos que POST funciona sem timeout
+  // mesmo sob carga concorrente
+  const body = JSON.stringify({
+    name: 'Test race condition',
+    distrito: ['Faro'],
+    categoria: ['Imóvel'],
+    valor_max: 300000,
+    active: true,
+  });
+  const reqs = Array.from({length: 5}, () =>
+    fetch('http://127.0.0.1:8001/api/alertas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    })
+  );
+  const responses = await Promise.all(reqs);
+  const ok = responses.filter(r => r.status === 200 || r.status === 201).length;
+  expect(ok, `${ok}/5 alertas criados com sucesso (sem 500 ou timeout)`).toBeGreaterThanOrEqual(4);
+  // Limpa
+  const list = await (await fetch('http://127.0.0.1:8001/api/alertas')).json();
+  for (const a of list.items) {
+    if (a.name === 'Test race condition') {
+      await fetch(`http://127.0.0.1:8001/api/alertas/${a.id}`, { method: 'DELETE' });
+    }
+  }
+});

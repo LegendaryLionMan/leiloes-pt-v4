@@ -148,8 +148,20 @@ def _carregar_reais_safe():
             ),
             # NOTA: 10 items (~0.3%) têm valorBase ~100× maior que valorMinimo (ex. Tábua terrenos).
             # Provável bug upstream e-leilões.pt (valorBase em cêntimos para items rústicos).
-            # Não aplicamos fix: o ratio estranho é informativo para o utilizador final.
+            # Heurística: ratio > 10x (lance/min) → flagged com motivo.
+            # (Calculado abaixo após todas as variáveis.)
         }
+        # Heurística: items com lance muito acima do mínimo (>10x) são flagados
+        # como valor suspeito (provável bug upstream valorBase em cêntimos).
+        try:
+            lance = float(n.get("lance_atual", 0) or 0)
+            vmin = float(n.get("valor_minimo", 1) or 1)
+            ratio = lance / vmin if lance > 0 else 0
+            if ratio > 10:
+                n["flagged"] = f"VALOR_SUSPEITO_RATIO_{ratio:.0f}x"
+        except (TypeError, ZeroDivisionError):
+            pass
+
         if n["valor_minimo"] <= 0:
             continue
         normalizados.append(n)
