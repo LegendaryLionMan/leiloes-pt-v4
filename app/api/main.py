@@ -353,6 +353,7 @@ def get_leiloes(
     incluir_passados: bool = Query(False, description="Se false, exclui items com data_encerramento < agora"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
+    cursor: Optional[str] = Query(None, description="Cursor-based pagination: id do último item da página anterior"),
 ):
     items, df = _load_items()
     df_filt = analytics.aplicar_filtros(
@@ -373,15 +374,26 @@ def get_leiloes(
         df_filt = df_filt[df_filt["poupanca_pct"] >= min_desconto_pct]
     if not incluir_passados and "dias_ate_encerramento" in df_filt.columns:
         df_filt = df_filt[df_filt["dias_ate_encerramento"] >= 0]
+    # Cursor-based: id > cursor (assume ID ascending)
+    if cursor is not None:
+            try:
+                cursor_id = int(cursor)
+                # Cursor-based pagination: assume id ascending, next page = id > cursor
+                df_filt = df_filt[df_filt["id"] > cursor_id]
+            except ValueError:
+                pass
     items = df_filt.to_dict(orient="records")
     total = len(items)
     start = (page - 1) * page_size
     page_items = items[start : start + page_size]
+    # Cursor = id do último item da página actual (assumindo ordenação por id)
+    next_cursor = str(page_items[-1]["id"]) if page_items and len(page_items) == page_size else None
     return {
         "count": total,
         "page": page,
         "page_size": page_size,
         "total_pages": max(1, (total + page_size - 1) // page_size),
+        "next_cursor": next_cursor,
         "items": [_row_to_json(it) for it in page_items],
     }
 

@@ -896,3 +896,28 @@ test('A11Y — keyboard nav: ESC fecha drawer', async ({ page }) => {
   await page.waitForTimeout(500);
   await expect(page.locator('[role="dialog"]')).not.toBeVisible();
 });
+
+
+test('PERF — cursor-based pagination retorna next_cursor quando página cheia', async ({ request }) => {
+  const j1 = await (await request.get(`${API}/leiloes?page_size=3`)).json();
+  expect(j1.count).toBeGreaterThan(3);
+  expect(j1.items).toHaveLength(3);
+  // next_cursor deve estar presente quando items == page_size
+  expect(j1.next_cursor, 'next_cursor deve ser o id do último item').toBeTruthy();
+
+  // Página 2 via cursor
+  if (j1.next_cursor) {
+    const j2 = await (await request.get(`${API}/leiloes?page_size=3&cursor=${j1.next_cursor}`)).json();
+    expect(j2.items.length).toBeGreaterThan(0);
+    // Cursor filter: page 2 items devem ter id > cursor
+    const minId2 = Math.min(...j2.items.map((it: any) => it.id));
+    expect(minId2, `Page 2 min id ${minId2} > cursor ${j1.next_cursor}`).toBeGreaterThan(Number(j1.next_cursor));
+  }
+});
+
+test('PERF — cursor inválido (não-numérico) é ignorado sem erro', async ({ request }) => {
+  const r = await request.get(`${API}/leiloes?page_size=3&cursor=banana`);
+  expect(r.status()).toBe(200);
+  const j = await r.json();
+  expect(j.count).toBeGreaterThan(0);
+});
