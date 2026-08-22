@@ -31,7 +31,13 @@ def para_dataframe(leiloes: List[Dict]) -> pd.DataFrame:
     return df
 
 
-def kpis_gerais(df: pd.DataFrame) -> Dict[str, Any]:
+def kpis_gerais(df: pd.DataFrame, excluir_passados: bool = True) -> Dict[str, Any]:
+    """KPIs globais.
+
+    Por defeito, exclui items com data_encerramento < agora (já encerraram/cancelaram).
+    """
+    if excluir_passados and "dias_ate_encerramento" in df.columns:
+        df = df[df["dias_ate_encerramento"] >= 0]
     safe = lambda k: float(df[k].sum()) if k in df.columns else 0.0
     safe_mean = lambda k: float(df[k].mean()) if k in df.columns and len(df) else 0.0
     return {

@@ -536,3 +536,46 @@ test('MAPA drills distrito → concelhos with auto-zoom', async ({ page }) => {
   // Top concelhos leaderboard header
   await expect(page.getByText('TOP CONCELHOS')).toBeVisible();
 });
+
+
+test('FOTO — items têm foto URL válida no drawer', async ({ page }) => {
+  // Vai a Tavira (4 imóveis conhecidos) e abre um deles — drawer deve mostrar foto real
+  await page.goto(SPA + '/');
+  await page.waitForResponse((r) => r.url().includes('/api/kpis') && r.status() === 200);
+  await new Promise((r) => setTimeout(r, 1500));
+  await page.click('text=Tavira — Imóveis');
+  await page.waitForTimeout(1500);
+  await page.click('text=Apartamento sito em Tavira');
+  await page.waitForTimeout(1500);
+  // drawer deve ter <img> com src http(s)://
+  // .last() picks the drawer's bigger <img> (the table rows have thumbnails .first() too)
+  const img = page.locator('img[src*="e-leiloes.pt/files"]').last();
+  await expect(img, 'Drawer mostra foto do item').toBeVisible({ timeout: 5000 });
+  // Verifica que a foto tem tamanho razoável (>200px wide, drawer usa h-48 = 192px)
+  const box = await img.boundingBox();
+  expect(box?.width ?? 0, 'Foto tem largura razoável').toBeGreaterThan(200);
+});
+
+test('INCLUIR_PASSADOS — default exclui items passados', async ({ request }) => {
+  const r1 = await request.get(`${API}/leiloes?page_size=1`);
+  const j1 = await r1.json();
+  const r2 = await request.get(`${API}/leiloes?page_size=1&incluir_passados=true`);
+  const j2 = await r2.json();
+  // Default: só ativos (2902) vs total (3098)
+  expect(j1.count, 'Default exclui passados').toBeLessThan(j2.count);
+  expect(j2.count).toBeGreaterThanOrEqual(j1.count);
+  // The first item of the default should have dias_ate_encerramento >= 0
+  expect(j1.items[0].dias_ate_encerramento, 'First item not past').toBeGreaterThanOrEqual(0);
+});
+
+test('AGG_ENDPOINTS — todas excluem items passados (2902 < 3098)', async ({ request }) => {
+  const endpoints = ['agregados/distrito', 'agregados/categoria', 'kpis/estados', 'mapa/distritos'];
+  for (const ep of endpoints) {
+    const r = await request.get(`${API}/${ep}`);
+    expect(r.status()).toBe(200);
+    const j = await r.json();
+    const total = j.items ? j.items.reduce((s: number, x: any) => s + (x.total || 0), 0) : (j.total || 0);
+    expect(total, `${ep} should sum < 3098`).toBeLessThan(3098);
+    expect(total, `${ep} should sum >= 2800 (allow some variance)`).toBeGreaterThanOrEqual(2800);
+  }
+});

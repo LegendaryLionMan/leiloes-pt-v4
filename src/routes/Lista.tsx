@@ -448,7 +448,13 @@ export default function Lista() {
                 className="block w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50"
               >
                 <div className="flex items-start gap-2">
-                  <span aria-hidden className="text-2xl">{categoryEmoji(it.categoria)}</span>
+                  {it.foto ? (
+                    <img src={it.foto} alt="" loading="lazy" referrerPolicy="no-referrer"
+                         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                         className="w-10 h-10 object-cover rounded shrink-0" />
+                  ) : (
+                    <span aria-hidden className="text-2xl shrink-0">{categoryEmoji(it.categoria)}</span>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium line-clamp-2">{it.titulo}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -587,6 +593,16 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
                   className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 min-h-[44px] min-w-[44px] flex items-center justify-center">✕</button>
         </header>
         <div className="flex-1 overflow-auto p-5 space-y-4">
+          {item.foto && (
+            <img
+              src={item.foto}
+              alt={item.titulo}
+              className="w-full h-48 object-cover rounded-lg border border-slate-200 dark:border-slate-700"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            />
+          )}
           <div className="flex items-center gap-3">
             <span aria-hidden className="text-4xl">{categoryEmoji(item.categoria)}</span>
             <div>

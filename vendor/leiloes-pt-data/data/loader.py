@@ -141,7 +141,14 @@ def _carregar_reais_safe():
             "fonte": "E-LEILÕES",
             "link": f"/leilao/{it.get('id')}",  # Self-hosted detail page (e-leilões SPA doesn't accept deep links)
                         "lance_atual": float(it.get("lanceAtual", 0) or 0),
-            "foto": "",
+            # foto vem do raw como "files/Verbas_Fotos/verba_XXX/...jpg" — prefix CDN para servir
+            "foto": (
+                "https://www.e-leiloes.pt/" + it["capa"]
+                if it.get("capa") else ""
+            ),
+            # NOTA: 10 items (~0.3%) têm valorBase ~100× maior que valorMinimo (ex. Tábua terrenos).
+            # Provável bug upstream e-leilões.pt (valorBase em cêntimos para items rústicos).
+            # Não aplicamos fix: o ratio estranho é informativo para o utilizador final.
         }
         if n["valor_minimo"] <= 0:
             continue

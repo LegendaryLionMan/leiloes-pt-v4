@@ -263,6 +263,7 @@ def get_leiloes(
     ordenar_por: str = Query("data_encerramento", pattern="^(data_encerramento|data_publicacao|valor_minimo|poupanca_potencial|poupanca_pct|titulo)$"),
     ordem: str = Query("asc", pattern="^(asc|desc)$"),
     texto_livre: Optional[str] = Query(None),
+    incluir_passados: bool = Query(False, description="Se false, exclui items com data_encerramento < agora"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
 ):
@@ -283,6 +284,8 @@ def get_leiloes(
     )
     if min_desconto_pct is not None:
         df_filt = df_filt[df_filt["poupanca_pct"] >= min_desconto_pct]
+    if not incluir_passados and "dias_ate_encerramento" in df_filt.columns:
+        df_filt = df_filt[df_filt["dias_ate_encerramento"] >= 0]
     items = df_filt.to_dict(orient="records")
     total = len(items)
     start = (page - 1) * page_size
@@ -330,6 +333,7 @@ def get_top(
 @app.get("/api/agregados/categoria")
 def agg_categoria(distrito: Optional[List[str]] = Query(None)):
     items, df = _load_items()
+    df = _df_active(df)
     df_filt = analytics.aplicar_filtros(df, distritos=distrito)
     agg = analytics.agregado_por_categoria(df_filt)
     return {
@@ -341,6 +345,7 @@ def agg_categoria(distrito: Optional[List[str]] = Query(None)):
 @app.get("/api/agregados/distrito")
 def agg_distrito():
     items, df = _load_items()
+    df = _df_active(df)
     agg = analytics.agregado_por_distrito(df)
     return {
         "count": len(agg),
@@ -352,6 +357,7 @@ def agg_distrito():
 def mapa_distritos():
     """Distritos com lat/lon + counts + poupança — pronto para para o mapa de bolhas Leaflet."""
     items, df = _load_items()
+    df = _df_active(df)
     agg = analytics.agregado_por_distrito(df)
     # Enrich with coordinates
     out = []
@@ -373,6 +379,7 @@ def mapa_distritos():
 def mapa_concelhos(distrito: Optional[str] = None):
     """Concelhos com lat/lon + counts — pronto para para o mapa de bolhas Leaflet (drill-down)."""
     items, df = _load_items()
+    df = _df_active(df)
     if distrito:
         df = df[df["distrito"] == distrito]
     agg = analytics.agregado_por_concelho(df)
@@ -395,6 +402,7 @@ def mapa_concelhos(distrito: Optional[str] = None):
 @app.get("/api/agregados/concelho")
 def agg_concelho(distrito: Optional[str] = Query(None)):
     items, df = _load_items()
+    df = _df_active(df)
     agg = analytics.agregado_por_concelho(df, distrito=distrito)
     return {
         "count": len(agg),
@@ -407,6 +415,7 @@ def agg_concelho(distrito: Optional[str] = Query(None)):
 @app.get("/api/series/publicacao")
 def series_publicacao():
     items, df = _load_items()
+    df = _df_active(df)
     s = analytics.serie_temporal_publicacao(df)
     records = s.to_dict(orient="records")
     return {
@@ -419,6 +428,7 @@ def series_publicacao():
 @app.get("/api/series/encerramento")
 def series_encerramento():
     items, df = _load_items()
+    df = _df_active(df)
     s = analytics.evolucao_encerramentos(df)
     return {
         "count": len(s),
@@ -522,6 +532,13 @@ def cache_refresh():
     return {"status": "started", "note": "A cache será refrescada em background (~60-120s). Verifique /api/cache/info."}
 
 
+def _df_active(df: pd.DataFrame) -> pd.DataFrame:
+    """Filtra items que ainda não encerraram (dias_ate_encerramento >= 0)."""
+    if "dias_ate_encerramento" in df.columns:
+        return df[df["dias_ate_encerramento"] >= 0]
+    return df
+
+
 # --- Drill-down & scatter -------------------------------------------------
 
 
@@ -534,6 +551,7 @@ def scatter_lance_vs_min(
 ):
     """Pontos para scatter lance_atual vs valor_minimo. Para o grafico exploratorio."""
     items, df = _load_items()
+    df = _df_active(df)
     df_filt = analytics.aplicar_filtros(
         df,
         distritos=distrito,
@@ -553,6 +571,7 @@ def kpis_estados(
 ):
     """Contagens por estado (Em curso / Terminado / Cancelado / Agendado)."""
     items, df = _load_items()
+    df = _df_active(df)
     df_filt = analytics.aplicar_filtros(df, distritos=distrito, categorias=categoria)
     return analytics.kpis_por_estado(df_filt)
 
@@ -564,6 +583,7 @@ def series_timeline(
 ):
     """Publicacoes e encerramentos por dia (ultimos 60 dias + proximos 60)."""
     items, df = _load_items()
+    df = _df_active(df)
     df_filt = analytics.aplicar_filtros(df, distritos=distrito, categorias=categoria)
     t = analytics.timeline_completa(df_filt)
     return {"count": len(t["dias"]), **t}
@@ -576,6 +596,7 @@ def agg_modalidade(
 ):
     """Conta + valor por modalidade (Leilao Online vs Negocio Particular)."""
     items, df = _load_items()
+    df = _df_active(df)
     df_filt = analytics.aplicar_filtros(df, distritos=distrito, categorias=categoria)
     agg = analytics.agregado_por_modalidade(df_filt)
     return {
