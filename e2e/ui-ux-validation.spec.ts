@@ -678,3 +678,48 @@ test('A11Y — skip link funciona com Tab', async ({ page }) => {
   expect(focused.tag).toBe('A');
   expect(focused.text).toContain('Saltar');
 });
+
+
+test('PERF — gzip enabled (Accept-Encoding: gzip returns content-encoding: gzip)', async ({ request }) => {
+  // Playwright descomprime .body() automaticamente, mas os headers mostram o content-encoding
+  const gzip = await request.get(`${API}/leiloes?page_size=500`, {
+    headers: { 'Accept-Encoding': 'gzip' }
+  });
+  expect(gzip.status()).toBe(200);
+  const ce = gzip.headers()['content-encoding'];
+  expect(ce, `Content-Encoding deve ser gzip (got ${ce})`).toBe('gzip');
+  // Verify tem X items dentro
+  const j = await gzip.json();
+  expect(j.count).toBeGreaterThanOrEqual(100);
+});
+
+test('PERF — endpoints principais respondem em <200ms', async ({ request }) => {
+  const endpoints = ['kpis', 'agregados/distrito', 'mapa/distritos', 'series/timeline'];
+  for (const ep of endpoints) {
+    const t0 = Date.now();
+    const r = await request.get(`${API}/${ep}`);
+    const ms = Date.now() - t0;
+    expect(r.status(), `${ep} deve 200`).toBe(200);
+    expect(ms, `${ep} deve <200ms (got ${ms}ms)`).toBeLessThan(200);
+  }
+});
+
+
+test('CACHE — /api/cache/* tem no-store, /api/kpis max-age=60, resto 30', async ({ request }) => {
+  const noStore = await request.get(`${API}/cache/info`);
+  expect(noStore.headers()['cache-control']).toContain('no-store');
+
+  const kpis = await request.get(`${API}/kpis`);
+  expect(kpis.headers()['cache-control']).toContain('max-age=60');
+
+  const leiloes = await request.get(`${API}/leiloes?page_size=10`);
+  expect(leiloes.headers()['cache-control']).toContain('max-age=30');
+});
+
+test('CACHE — gzip responde content-encoding gzip quando pedido', async ({ request }) => {
+  const r = await request.get(`${API}/leiloes?page_size=500`, {
+    headers: { 'Accept-Encoding': 'gzip' }
+  });
+  expect(r.status()).toBe(200);
+  expect(r.headers()['content-encoding']).toBe('gzip');
+});

@@ -41,6 +41,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
 
 # Vendor the v3 data layer onto sys.path so `data.*` resolves.
@@ -119,6 +120,38 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Compressão gzip: ~73% redução em payloads JSON
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
+
+class CacheControlMiddleware:
+    """Pure ASGI middleware: max-age=60 para kpis, 30 para resto, no-store para /cache/*"""
+    def __init__(self, app):
+        self.app = app
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        path = scope.get("path", "")
+        # Define the cache header
+        if path.startswith("/api/cache"):
+            cache_header = "no-store"
+        elif path == "/api/kpis":
+            cache_header = "public, max-age=60"
+        else:
+            cache_header = "public, max-age=30"
+
+        async def send_with_header(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                headers.append((b"cache-control", cache_header.encode()))
+                message["headers"] = headers
+            await send(message)
+        await self.app(scope, receive, send_with_header)
+
+
+app.add_middleware(CacheControlMiddleware)
 
 
 # --- Pydantic models ------------------------------------------------------
