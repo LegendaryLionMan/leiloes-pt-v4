@@ -28,3 +28,9 @@ main.py.bak
 # Backend logs
 logs/debug.cjs
 verify.cjs
+# Phase 14.1 coverage artifacts
+htmlcov/
+# Phase 14.1 coverage artifacts
+coverage.xml
+# Phase 14.1 coverage artifacts
+.coverage

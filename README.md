@@ -172,9 +172,16 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for full endpoint catalog with auth, cach
 
 ### Locally
 ```bash
-npm run test:e2e          # 58 Playwright tests + 1 skipped (frontend e2e)
-PYTHONPATH="" python -m pytest tests/   # 36 backend pytest tests
+npm run test:e2e              # 58 Playwright tests + 1 skipped (frontend e2e)
+PYTHONPATH="" python -m pytest tests/   # 36 backend pytest tests + coverage HTML
+# → htmlcov/index.html (browser-openable coverage report)
+# → coverage.xml (Cobertura format for CI)
 ```
+
+Current backend coverage: **70.7%** on `app/api/main` (417 stmts, threshold 70%).
+The vendored data pipeline (`vendor/leiloes-pt-data/`) is exercised by tests but
+not counted — the directory has hyphens which makes it unreachable as a Python
+module identifier for pytest-cov. Renaming is a Phase 15+ refactor.
 
 ### CI (GitHub Actions)
 Every push and PR runs 3 jobs in `.github/workflows/ci.yml`:

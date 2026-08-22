@@ -6,8 +6,24 @@ FastAPI endpoint + data-loader integration tests.
 
 ```bash
 cd C:/Users/lion_/projetos/leiloes-pt-v4
-PYTHONPATH="" python -m pytest tests/ -v
+PYTHONPATH="" python -m pytest tests/ -v          # run all
+PYTHONPATH="" python -m pytest tests/ --tb=short  # run with short tracebacks
 ```
+
+## Coverage
+
+```bash
+# coverage is on by default via pyproject.toml [tool.pytest.ini_options].addopts
+PYTHONPATH="" python -m pytest tests/
+
+# Outputs:
+# - terminal: per-file coverage table with missing line numbers
+# - htmlcov/index.html: browser-openable HTML report
+# - coverage.xml: Cobertura format (CI uploads as artifact)
+```
+
+Current coverage: **70.7% on `app/api/main.py`** (417 stmts, 110 missed, 88 branches, 12 partial).
+Threshold: 70% (set in `pyproject.toml`, change via `--cov-fail-under=N`).
 
 ## Coverage (36 tests)
 

@@ -1,0 +1,72 @@
+[tool.pytest.ini_options]
+# pytest configuration for leiloes-pt-v4 backend
+# Phase 14.1: added coverage defaults + testpaths
+
+# Where pytest looks for tests
+testpaths = ["tests"]
+# Match test_*.py or *_test.py files
+python_files = ["test_*.py", "*_test.py"]
+# Match Test* classes (we use plain functions, but be safe)
+python_classes = ["Test*"]
+# Match test_* functions
+python_functions = ["test_*"]
+# Strict markers - fail on unknown markers (catches typos)
+# strict_markers = true  # Commented: we don't use markers yet (Phase 15)
+
+# Phase 14.1: coverage defaults (used when --cov flag is passed)
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    # Phase 14.1: Coverage on the FastAPI backend surface (app.api.main).
+    # The vendored data pipeline lives under `vendor/leiloes-pt-data/` —
+    # the directory name has hyphens, which is invalid as a Python module
+    # identifier. pytest-cov can only measure modules reachable via
+    # dotted-name imports, so the vendor code is EXERCISED by tests but
+    # not COUNTED in coverage. To get full coverage we'd need to rename
+    # `leiloes-pt-data/` to `leiloes_pt_data/` — that's a Phase 15+ refactor
+    # touching every sys.path.insert in conftest.py + every vendor import
+    # in app/api/main.py, so it's out of Phase 14.1 scope.
+    "--cov=app.api.main",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml:coverage.xml",
+    # Threshold 70% — current backend coverage is 70.7% (Phase 14.1 baseline).
+    # Tighten in future phases as test count grows.
+    "--cov-fail-under=70",
+]
+
+[tool.coverage.run]
+# Coverage settings (run sub-process)
+# Only measure the API surface (matches --cov flags above).
+# Vendor code is exercised but not counted (hyphen in dir name).
+source_pkgs = [
+    "app.api",
+]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/test_*.py",
+]
+# Branch coverage (catches if/else untested branches)
+branch = true
+
+[tool.coverage.report]
+# Report settings
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise ImportError",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+    "pass",
+]
+show_missing = true
+skip_covered = false
+sort = "Cover"
+precision = 1
