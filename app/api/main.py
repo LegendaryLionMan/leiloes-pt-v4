@@ -39,7 +39,13 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import logging
+import traceback
+from datetime import datetime
+
+from fastapi import Request
 from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
@@ -109,9 +115,42 @@ _init_alert_schema()
 
 app = FastAPI(
     title="leiloes-pt-v4 API",
-    version="0.2.0",
+    version="0.4.7",
     description="Lovable-style dashboard backend wrapping the v3 Python data pipeline.",
 )
+
+# v0.4.7: error reporting — logger + global exception handler
+logger = logging.getLogger("leiloes_pt_v4")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+# in-memory error buffer for /api/health (last 50 errors)
+_error_buffer: list[dict] = []
+_ERROR_BUFFER_MAX = 50
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Captura 500s com traceback completo; armazena últimos 50 para /api/health."""
+    tb = traceback.format_exc()
+    logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    _error_buffer.append({
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "method": request.method,
+        "path": str(request.url.path),
+        "error_type": type(exc).__name__,
+        "error_message": str(exc),
+        "traceback": tb.splitlines()[-10:],  # últimas 10 linhas só
+    })
+    if len(_error_buffer) > _ERROR_BUFFER_MAX:
+        _error_buffer.pop(0)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal Server Error",
+            "type": type(exc).__name__,
+            "message": str(exc),
+        },
+    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -287,9 +326,6 @@ def _matches_filters(item, params):
 
 # --- Health / cache -------------------------------------------------------
 
-@app.get("/api/health")
-def health():
-    return {"status": "ok", "version": "0.2.0"}
 
 
 @app.get("/api/cache/info")
@@ -886,3 +922,20 @@ def alert_matches(alert_id: str):
         return {"alert": alert, "matches": _alert_matches(alert, df)}
     finally:
         conn.close()
+
+@app.get("/api/health", include_in_schema=True)
+def health() -> dict:
+    """Health check com buffer de erros recentes (v0.4.7)."""
+    return {
+        "status": "ok",
+        "version": "0.4.7",
+        "errors_recent": _error_buffer[-10:],  # últimos 10
+        "errors_total_buffered": len(_error_buffer),
+        "errors_buffer_capacity": _ERROR_BUFFER_MAX,
+    }
+
+
+@app.post("/api/test/error", include_in_schema=False)
+def _test_error() -> dict:
+    """Endpoint de teste que dispara um erro 500 (para E2E validar exception handler)."""
+    raise RuntimeError("Test exception from /api/test/error")
