@@ -449,7 +449,7 @@ export default function Lista() {
               >
                 <div className="flex items-start gap-2">
                   {it.foto ? (
-                    <img src={it.foto} alt="" loading="lazy" referrerPolicy="no-referrer"
+                    <img src={it.foto} alt={it.titulo || it.referencia || "Foto do item"} loading="lazy" referrerPolicy="no-referrer"
                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                          className="w-10 h-10 object-cover rounded shrink-0" />
                   ) : (

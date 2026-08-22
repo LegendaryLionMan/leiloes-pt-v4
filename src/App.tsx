@@ -36,7 +36,7 @@ function ThemeToggle() {
     <button
       onClick={() => setDark((d) => !d)}
       aria-label={`Trocar para tema ${dark ? 'claro' : 'escuro'}`}
-      className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+      className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
     >
       {dark ? <Sun size={20} /> : <Moon size={20} />}
     </button>
@@ -111,7 +111,7 @@ function StaleCacheBanner() {
             window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Erro ao iniciar crawler', tone: 'error' } }));
           }
         }}
-        className="text-xs px-3 py-1 rounded-full bg-amber-600 text-white font-medium hover:bg-amber-700 transition-colors"
+        className="text-xs px-3 py-2 rounded-full bg-amber-600 text-white font-medium hover:bg-amber-700 transition-colors min-h-[36px]"
       >
         🔄 Refrescar agora
       </button>
@@ -187,7 +187,7 @@ export default function App() {
             onClick={() => setMobileNav((m) => !m)}
             aria-label={mobileNav ? 'Fechar menu' : 'Abrir menu'}
             aria-expanded={mobileNav}
-            className="md:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 min-h-[40px] min-w-[40px] flex items-center justify-center"
+            className="md:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             {mobileNav ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -208,7 +208,7 @@ export default function App() {
           <Link
             to="/matches"
             aria-label="Ver matches"
-            className="relative p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+            className="relative p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <AlertsBell />
           </Link>

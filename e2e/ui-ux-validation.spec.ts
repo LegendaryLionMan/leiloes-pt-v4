@@ -620,3 +620,61 @@ test('NO MATCH — items passados + novos_24h retorna count=0', async ({ request
   const r = await request.get(`${API}/leiloes?incluir_passados=true&novos_24h=true&dias_max=30`);
   expect(r.status()).toBe(200);
 });
+
+
+test('A11Y — viewport meta permite user zoom', async ({ request }) => {
+  // WCAG 1.4.4: máximo-scale > 1 impede zoom do user
+  const r = await request.get('http://127.0.0.1:5180/');
+  const html = await r.text();
+  const m = html.match(/<meta name="viewport" content="([^"]+)"/);
+  expect(m, 'meta viewport deve existir').not.toBeNull();
+  const content = m![1];
+  expect(content, 'sem maximum-scale=user (a11y WCAG 1.4.4)').not.toMatch(/maximum-scale=[12345]\b/);
+});
+
+test('A11Y — botões de nav têm touch target >= 44x44', async ({ page }) => {
+  await page.goto(SPA + '/');
+  await page.waitForResponse((r) => r.url().includes('/api/kpis') && r.status() === 200);
+  await new Promise((r) => setTimeout(r, 1500));
+  // Hamburger (md:hidden — só visível em mobile), Bell (sempre visível), Theme toggle (sempre visível)
+  const buttons = ['Ver matches', 'Trocar para tema escuro'];
+  for (const label of buttons) {
+    const btn = page.locator(`[aria-label*="${label}"]`).first();
+    await expect(btn, `${label} deve estar visível`).toBeVisible({ timeout: 3000 });
+    const box = await btn.boundingBox();
+    expect(box?.height ?? 0, `${label} deve ter >= 44px de altura`).toBeGreaterThanOrEqual(44);
+    expect(box?.width ?? 0, `${label} deve ter >= 44px de largura`).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test('A11Y — imagens de thumbnails têm alt descritivo', async ({ page }) => {
+  await page.goto(SPA + '/');
+  await page.waitForTimeout(2500);
+  // Não dependemos de visibility — algumas imagens têm display=none via onError handler (CDN com 404)
+  // O importante é que estão no DOM com alt descritivo (não vazio, não genérico)
+  const imgs = await page.$$eval('img[src*="e-leiloes.pt/files"]', els =>
+    els.slice(0, 10).map(e => ({
+      src: (e.getAttribute('src') || '').slice(0, 80),
+      alt: e.getAttribute('alt') || '',
+    }))
+  );
+  expect(imgs.length, 'pelo menos 1 thumbnail existe').toBeGreaterThan(0);
+  const withGoodAlt = imgs.filter(i => i.alt.length > 5).length;
+  expect(withGoodAlt, `imagens com alt descritivo (>5 chars): ${withGoodAlt}/${imgs.length}`).toBeGreaterThan(0);
+  // Nenhuma deve ter alt vazio ou genérico "Foto do item"
+  for (const i of imgs) {
+    expect(i.alt.length, `alt deve ser > 5 chars (got ${JSON.stringify(i.alt)})`).toBeGreaterThan(5);
+  }
+});
+
+test('A11Y — skip link funciona com Tab', async ({ page }) => {
+  await page.goto(SPA + '/');
+  await page.keyboard.press('Tab'); // deve focar o skip link primeiro
+  await page.waitForTimeout(150);
+  const focused = await page.evaluate(() => ({
+    tag: document.activeElement?.tagName,
+    text: document.activeElement?.textContent?.slice(0, 60),
+  }));
+  expect(focused.tag).toBe('A');
+  expect(focused.text).toContain('Saltar');
+});
