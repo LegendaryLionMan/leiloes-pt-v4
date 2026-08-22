@@ -12,6 +12,7 @@ import { fetchCacheInfo, refreshCache, fetchAlertas } from './lib/api';
 import { ToastContainer, emitToast } from './components/Toast';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { cx } from '@/lib/ui';
+import { useTranslation } from 'react-i18next';
 
 const tabs = [
   { to: '/', label: 'Lista', icon: Home, end: true },
@@ -141,6 +142,7 @@ function AlertsBell() {
 
 
 export default function App() {
+  const { t } = useTranslation();
   const [mobileNav, setMobileNav] = useState(false);
   const location = useLocation();
 
@@ -153,7 +155,7 @@ export default function App() {
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:bg-white focus:px-3 focus:py-1.5 focus:rounded focus:shadow"
       >
-        Saltar para o conteúdo principal
+        {t("ui.skip_to_content")}
       </a>
 
       <StaleCacheBanner />
@@ -201,7 +203,7 @@ export default function App() {
       <div className="flex flex-1">
         {/* Sidebar */}
         <nav
-          aria-label="Navegação principal"
+          aria-label={t("ui.main_nav")}
           className={cx(
             'md:w-56 md:flex-shrink-0 md:relative md:translate-x-0 md:bg-white md:dark:bg-slate-900 md:border-r md:border-slate-200 md:dark:border-slate-800',
             'fixed inset-y-0 left-0 z-30 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform transition-transform md:transition-none',

@@ -106,5 +106,28 @@
     "stale": "Cache stale",
     "stale_msg": "Os dados foram refrescados há {{age}}; valores podem estar desactualizados.",
     "refrescar": "Refrescar agora"
+  },
+  "ui": {
+    "open_at_source": "Abrir no e-leilões.pt",
+    "copy_reference": "Copia a referência para a área de transferência",
+    "min": "mín",
+    "max": "máx",
+    "page": "Página",
+    "title": "Título",
+    "valuation": "Avaliação",
+    "main_nav": "Navegação principal",
+    "skip_to_content": "Saltar para o conteúdo principal",
+    "notifications": "Notificações",
+    "timeline_chart_caption": "Linha temporal — publicações vs encerramentos",
+    "matches_summary_caption": "Resultado da avaliação dos alertas ativos contra o scope atu",
+    "valor_min_short": "Valor mín.",
+    "ref_and_status": "Referência e estado",
+    "no_results_clear": "Nenhum leilão corresponde aos filtros — Limpar filtros"
+  },
+  "filters": {
+    "search_placeholder": "Pesquisar título, freguesia, referência…",
+    "search_keywords": "palavras-chave (ex: terreno, armazém)",
+    "novos_24h": "Apenas leilões publicados nas últimas 24 horas",
+    "poupanca_min_slider": "Slider de poupança mínima"
   }
 }

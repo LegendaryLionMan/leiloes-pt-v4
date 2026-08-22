@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, Save } from 'lucide-react';
 import { createAlerta, fetchFacets } from '@/lib/api';
 import { Card, ErrorState, Spinner, toast } from '@/lib/ui';
+import { useTranslation } from 'react-i18next';
 
 const AlertSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(80, 'Nome demasiado longo'),
@@ -22,6 +23,7 @@ const AlertSchema = z.object({
 type AlertForm = z.infer<typeof AlertSchema>;
 
 export default function CriarAlerta() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const facets = useQuery({ queryKey: ['facets'], queryFn: fetchFacets });
   const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<AlertForm>({
@@ -164,14 +166,14 @@ export default function CriarAlerta() {
             <input
               type="text"
               {...register('texto_livre')}
-              placeholder="palavras-chave (ex: terreno, armazém)"
+              placeholder={t("filters.search_keywords")}
               className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm"
             />
           </Field>
 
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" {...register('only_novos_24h')} className="accent-brand-teal" />
-            Apenas leilões publicados nas últimas 24 horas
+            {t("filters.novos_24h")}
           </label>
 
           {/* Submit */}

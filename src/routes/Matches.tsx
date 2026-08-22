@@ -3,8 +3,10 @@ import { Sparkles, ExternalLink } from 'lucide-react';
 import { fetchAllMatches } from '@/lib/api';
 import { Card, EmptyState, ErrorState, Spinner, categoryEmoji, formatEUR, formatPct, urgencyBadge, cx } from '@/lib/ui';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function Matches() {
+  const { t } = useTranslation();
   const matches = useQuery({ queryKey: ['matches', 'active'], queryFn: () => fetchAllMatches(true) });
 
   return (
@@ -15,7 +17,7 @@ export default function Matches() {
             <Sparkles size={24} className="text-amber-500" /> Matches
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Resultado da avaliação dos alertas ativos contra o scope atual.
+            {t("ui.matches_summary_caption")}al.
           </p>
         </div>
         <Link
@@ -74,7 +76,7 @@ export default function Matches() {
                   {m.link && (
                     <a href={m.link} target="_blank" rel="noopener noreferrer"
                        className="mt-2 inline-flex items-center gap-1 text-xs text-brand-teal hover:underline min-h-[36px]">
-                      Abrir no e-leilões.pt <ExternalLink size={12} />
+                      {t("ui.open_at_source")} <ExternalLink size={12} />
                     </a>
                   )}
                 </Card>

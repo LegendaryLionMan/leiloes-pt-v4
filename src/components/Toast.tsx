@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Toast global — consome eventos 'toast' do window + state local.
@@ -24,6 +25,7 @@ export function emitToast(detail: ToastEvent) {
 }
 
 export function ToastContainer() {
+  const { t } = useTranslation();
   const [toasts, setToasts] = useState<(ToastEvent & { id: number })[]>([]);
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export function ToastContainer() {
   return (
     <div
       role="region"
-      aria-label="Notificações"
+      aria-label={t("ui.notifications")}
       className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-md"
     >
       {toasts.map((t) => {

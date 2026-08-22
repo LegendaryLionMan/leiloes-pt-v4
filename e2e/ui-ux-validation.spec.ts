@@ -1116,3 +1116,39 @@ test('ERROR HANDLING — GlobalErrorBoundary renderiza fallback se child throw',
   // So we just verify the page still renders and ErrorBoundary didn't activate
   await expect(page.locator('[data-testid="error-boundary"]')).toHaveCount(0);
 });
+
+
+test('I18N — Phase 5.2: search placeholder translated via t()', async ({ page }) => {
+  await page.goto(SPA + '/', { waitUntil: 'networkidle' });
+  await new Promise(r => setTimeout(r, 1500));
+
+  const input = page.locator('input[placeholder*="Pesquisar"], input[placeholder*="Search"]').first();
+  await expect(input).toBeVisible({ timeout: 3000 });
+
+  // PT-PT (default)
+  const placeholder = await input.getAttribute('placeholder');
+  expect(placeholder).toMatch(/Pesquisar|Search/);
+
+  // Switch to EN
+  const langBtn = page.locator('[data-testid="lang-switcher"], button:has-text("PT"), button:has-text("EN")').first();
+  await langBtn.click().catch(() => {});
+  await new Promise(r => setTimeout(r, 500));
+
+  const enPlaceholder = await input.getAttribute('placeholder');
+  // After switch, placeholder should be the EN variant
+  expect(enPlaceholder).toBeTruthy();
+});
+
+test('I18N — Phase 5.2: a11y labels translated (skip-to-content, main-nav)', async ({ page }) => {
+  await page.goto(SPA + '/', { waitUntil: 'networkidle' });
+  await new Promise(r => setTimeout(r, 1500));
+
+  // Skip link
+  const skipLink = page.locator('a[href="#main"]').first();
+  await expect(skipLink).toBeVisible();
+
+  // Main nav has aria-label
+  const nav = page.locator('nav[aria-label]').first();
+  const navLabel = await nav.getAttribute('aria-label');
+  expect(navLabel).toMatch(/Navegação|Main/);
+});

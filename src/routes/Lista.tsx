@@ -140,7 +140,7 @@ export default function Lista() {
           <input
             value={filters.texto_livre ?? ''}
             onChange={(e) => setFilters((f) => ({ ...f, texto_livre: e.target.value || undefined }))}
-            placeholder="Pesquisar título, freguesia, referência…"
+            placeholder={t("filters.search_placeholder")}
             aria-label="Pesquisar título, freguesia, referência"
             className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal"
           />
@@ -257,7 +257,7 @@ export default function Lista() {
                       value={Math.min(filters.min_desconto_pct ?? 0, 15)}
                       onChange={(e) => setFilters((f) => ({ ...f, min_desconto_pct: Number(e.target.value) || undefined }))}
                       className="w-full accent-brand-teal"
-                      aria-label="Slider de poupança mínima"
+                      aria-label={t("filters.poupanca_min_slider")}
                     />
                     <div className="flex justify-between text-xs text-slate-400 mt-1">
                       <span>0%</span><span>15%</span>
@@ -353,7 +353,7 @@ export default function Lista() {
       {leiloes.isLoading && <SkeletonTable rows={6} cols={6} />}
       {leiloes.isError && <ErrorState message="Falha a carregar a lista" onRetry={() => leiloes.refetch()} />}
       {leiloes.data && leiloes.data.items.length === 0 && (
-        <EmptyState icon="🪺" title="Nenhum leilão corresponde aos filtros — Limpar filtros" action={
+        <EmptyState icon="🪺" title={t("ui.no_results_clear")} action={
           <button onClick={clearAll} className="text-sm font-medium text-brand-teal hover:underline">Limpar filtros</button>
         } />
       )}
@@ -572,6 +572,7 @@ function EstadoPill({ estado }: { estado: string | undefined | null }) {
 }
 
 function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) {
+  const { t } = useTranslation();
   const drawerRef = useFocusTrap(true);
   // ESC closes the drawer
   const handleKey = useCallback((e: KeyboardEvent) => {
@@ -644,7 +645,7 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
           </div>
 
           <div>
-            <p className="text-xs uppercase text-slate-500 mb-1">Referência e estado</p>
+            <p className="text-xs uppercase text-slate-500 mb-1">{t("ui.ref_and_status")}</p>
             <div className="flex items-center gap-2 flex-wrap">
               <EstadoPill estado={item.estado} />
               <span className="text-xs font-mono text-slate-500">{item.referencia}</span>
@@ -674,14 +675,14 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
                target="_blank" rel="noopener noreferrer"
                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-teal text-white font-medium hover:opacity-90 min-h-[44px]"
                title={`Abre o leilão ${item.referencia} no e-leilões.pt`}>
-              <ExternalLink size={16} /> Abrir no e-leilões.pt
+              <ExternalLink size={16} /> {t("ui.open_at_source")}
             </a>
           )}
           {item.referencia && (
             <button type="button"
                onClick={() => navigator.clipboard?.writeText(item.referencia ?? '')}
                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 min-h-[44px]"
-               title="Copia a referência para a área de transferência">
+               title={t("ui.copy_reference")}>
               <Copy size={16} /> Copiar referência
             </button>
           )}

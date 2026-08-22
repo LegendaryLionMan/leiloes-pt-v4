@@ -106,5 +106,28 @@
     "stale": "Cache stale",
     "stale_msg": "Data was refreshed {{age}} ago; values may be outdated.",
     "refrescar": "Refresh now"
+  },
+  "ui": {
+    "open_at_source": "Open at e-leilões.pt",
+    "copy_reference": "Copy reference to clipboard",
+    "min": "min",
+    "max": "max",
+    "page": "Page",
+    "title": "Title",
+    "valuation": "Valuation",
+    "main_nav": "Main navigation",
+    "skip_to_content": "Skip to main content",
+    "notifications": "Notifications",
+    "timeline_chart_caption": "Timeline — publications vs closures",
+    "matches_summary_caption": "Evaluation of active alerts against the current scope",
+    "valor_min_short": "Min. value",
+    "ref_and_status": "Reference and status",
+    "no_results_clear": "No auctions match the filters — Clear filters"
+  },
+  "filters": {
+    "search_placeholder": "Search title, parish, reference…",
+    "search_keywords": "keywords (e.g. land, warehouse)",
+    "novos_24h": "Only auctions published in the last 24 hours",
+    "poupanca_min_slider": "Minimum savings slider"
   }
 }
