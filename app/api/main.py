@@ -547,6 +547,7 @@ def scatter_lance_vs_min(
     distrito: Optional[List[str]] = Query(None),
     categoria: Optional[List[str]] = Query(None),
     modalidade: Optional[List[str]] = Query(None),
+    min_desconto_pct: Optional[float] = Query(None, ge=0, le=100, description="Filtrar pontos com desconto >= N% (positivo=acima do mínimo, negativo=abaixo)."),
     max_points: int = Query(500, ge=10, le=2000),
 ):
     """Pontos para scatter lance_atual vs valor_minimo. Para o grafico exploratorio."""
@@ -560,6 +561,14 @@ def scatter_lance_vs_min(
     # modalidade isn't in aplicar_filtros, filter manually
     if modalidade:
         df_filt = df_filt[df_filt["modalidade"].isin(modalidade)]
+    # Filtra por desconto se especificado (usar |delta_pct| >= min_desconto_pct)
+    if min_desconto_pct is not None:
+        if "delta_pct" not in df_filt.columns:
+            df_filt = df_filt.copy()
+            lance_min = df_filt["lance_atual"].fillna(0)
+            vmin = df_filt["valor_minimo"].replace(0, 1)
+            df_filt["delta_pct"] = ((lance_min - vmin) / vmin * 100)
+        df_filt = df_filt[df_filt["delta_pct"].abs() >= min_desconto_pct]
     pts = analytics.lance_vs_min_scatter(df_filt, max_points=max_points)
     return {"count": len(pts), "items": pts}
 

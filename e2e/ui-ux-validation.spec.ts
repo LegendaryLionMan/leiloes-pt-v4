@@ -579,3 +579,44 @@ test('AGG_ENDPOINTS — todas excluem items passados (2902 < 3098)', async ({ re
     expect(total, `${ep} should sum >= 2800 (allow some variance)`).toBeGreaterThanOrEqual(2800);
   }
 });
+
+
+test('SCATTER ENDPOINT — min_desconto_pct valida e filtra', async ({ request }) => {
+  // Invalid > 100 should 422
+  const r1 = await request.get(`${API}/scatter/lance-vs-min?min_desconto_pct=150&max_points=50`);
+  expect(r1.status(), 'min_desconto_pct=150 must 422').toBe(422);
+
+  // Invalid < 0 should 422
+  const r2 = await request.get(`${API}/scatter/lance-vs-min?min_desconto_pct=-10&max_points=50`);
+  expect(r2.status(), 'min_desconto_pct=-10 must 422').toBe(422);
+
+  // Valid = 30 returns items with |delta_pct| >= 30
+  const r3 = await request.get(`${API}/scatter/lance-vs-min?min_desconto_pct=30&max_points=500`);
+  expect(r3.status(), 'min_desconto_pct=30 should 200').toBe(200);
+  const j3 = await r3.json();
+  for (const it of j3.items) {
+    expect(Math.abs(it.delta_pct), `Item ${it.referencia} should have |delta_pct| >= 30`).toBeGreaterThanOrEqual(30);
+  }
+});
+
+test('VALIDATION — page_size max=500 + min=1 strictly enforced', async ({ request }) => {
+  expect((await request.get(`${API}/leiloes?page_size=10000`)).status()).toBe(422);
+  expect((await request.get(`${API}/leiloes?page_size=0`)).status()).toBe(422);
+  expect((await request.get(`${API}/leiloes?page=0`)).status()).toBe(422);
+  expect((await request.get(`${API}/leiloes?ordenar_por=hacked`)).status()).toBe(422);
+  expect((await request.get(`${API}/leiloes?valor_min=-100`)).status()).toBe(422);
+});
+
+test('NO MATCH — filters combinados retornam count=0 limpo', async ({ request }) => {
+  const r = await request.get(`${API}/leiloes?distrito=Atlantis&categoria=Imovel`);
+  expect(r.status()).toBe(200);
+  const j = await r.json();
+  expect(j.count).toBe(0);
+  expect(j.items).toEqual([]);
+});
+
+test('NO MATCH — items passados + novos_24h retorna count=0', async ({ request }) => {
+  // Incluir passados E pedir novos 24h — sem overlap possível
+  const r = await request.get(`${API}/leiloes?incluir_passados=true&novos_24h=true&dias_max=30`);
+  expect(r.status()).toBe(200);
+});
