@@ -965,3 +965,48 @@ test('I18N — switcher acessível com role=group + aria-pressed', async ({ page
   await expect(page.locator('[data-testid="lang-pt-PT"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('[data-testid="lang-en"]')).toHaveAttribute('aria-pressed', 'false');
 });
+
+
+test('DRILL — click fatia donut mostra chip + actualiza URL', async ({ page }) => {
+  await page.goto(BASE + '/visualizacoes', { waitUntil: 'networkidle' });
+  await page.waitForSelector('svg.recharts-surface path.recharts-sector');
+
+  // Initially no chip
+  await expect(page.locator('[data-testid="drill-chip-categoria"]')).toHaveCount(0);
+
+  // Click primeira fatia (qualquer categoria)
+  await page.locator('svg.recharts-surface path.recharts-sector').first().click({ force: true });
+  await page.waitForTimeout(800);
+
+  // Chip aparece
+  const chip = page.locator('[data-testid="drill-chip-categoria"]');
+  await expect(chip).toHaveCount(1);
+  await expect(chip).toContainText(/.+/);
+
+  // URL tem ?cat=...
+  const url = page.url();
+  expect(url).toMatch(/[?&]cat=/);
+});
+
+test('DRILL — ?cat=X em URL restaura drill após reload', async ({ page }) => {
+  await page.goto(BASE + '/visualizacoes?cat=Im%C3%B3vel', { waitUntil: 'networkidle' });
+  await page.waitForSelector('svg.recharts-surface');
+
+  // Chip deve aparecer automaticamente
+  await page.waitForTimeout(2000);
+  const chip = page.locator('[data-testid="drill-chip-categoria"]');
+  await expect(chip).toHaveCount(1);
+  await expect(chip).toContainText(/Im[oó]vel/);
+});
+
+test('DRILL — botão × no chip limpa filtro e URL', async ({ page }) => {
+  await page.goto(BASE + '/visualizacoes?cat=Im%C3%B3vel', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(2000);
+
+  await page.locator('[data-testid="drill-clear-categoria"]').click();
+  await page.waitForTimeout(500);
+
+  await expect(page.locator('[data-testid="drill-chip-categoria"]')).toHaveCount(0);
+  const url = page.url();
+  expect(url).not.toMatch(/[?&]cat=/);
+});

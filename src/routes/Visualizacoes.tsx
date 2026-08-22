@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as ScTooltip, ResponsiveContainer, ZAxis,
   PieChart, Pie, Cell, Tooltip,
@@ -19,7 +20,28 @@ const NO_ANIM = { isAnimationActive: false } as const;
 type DrillSelection = { distrito?: string; categoria?: string; modalidade?: string };
 
 export default function Visualizacoes() {
-  const [drill, setDrill] = useState<DrillSelection>({});
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [drill, setDrill] = useState<DrillSelection>(() => {
+    const cat = searchParams.get('cat');
+    return cat ? { categoria: cat } : {};
+  });
+
+  // Sync drill.categoria ↔ URL ?cat=X (partilhável / bookmarkable)
+  useEffect(() => {
+    if (drill.categoria) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('cat', drill.categoria!);
+        return next;
+      }, { replace: true });
+    } else if (searchParams.has('cat')) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('cat');
+        return next;
+      }, { replace: true });
+    }
+  }, [drill.categoria, searchParams, setSearchParams]);
 
   // Top-row cards (KPIs by estado)
   const estados = useQuery({
@@ -140,11 +162,30 @@ export default function Visualizacoes() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Donut: categoria (drill into categoria) */}
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="font-medium">Por categoria (quantidade)</p>
-            <p className="text-xs text-slate-500">clique numa fatia → drill</p>
-          </div>
+<Card className="p-4">
+  <div className="flex items-center justify-between mb-3">
+    <p className="font-medium">Por categoria (quantidade)</p>
+    <div className="flex items-center gap-2">
+      {drill.categoria && (
+        <span
+          data-testid="drill-chip-categoria"
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+        >
+          {drill.categoria}
+          <button
+            type="button"
+            data-testid="drill-clear-categoria"
+            aria-label="Limpar filtro categoria"
+            onClick={() => setDrill((d) => ({ ...d, categoria: undefined }))}
+            className="ml-1 text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-100"
+          >
+            ×
+          </button>
+        </span>
+      )}
+      <p className="text-xs text-slate-500">clique numa fatia → drill</p>
+    </div>
+  </div>
           {aggCat.isLoading && <Spinner />}
           {aggCat.isError && <ErrorState message="Falha a carregar" />}
           {aggCat.data && (
