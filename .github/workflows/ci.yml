@@ -6,14 +6,141 @@ on:
   pull_request:
     branches: [main]
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+# Cancel in-flight runs of the same branch/PR to save CI minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
-    defaults:
-      run:
-        working-directory: .
+jobs:
+  # -----------------------------------------------------------------------------
+  # Job 1: Backend pytest (Phase 12 — 36 tests, fast, ~30s)
+  # Validates the FastAPI surface + data loader heuristics without needing the
+  # full SPA.  Runs first so we fail fast on backend regressions.
+  #
+  # PASS criterion: `pytest tests/` exits 0 with 36+ tests collected.
+  # Falsification rule: if this job passes but the SPA breaks in production,
+  # the bug is in the React layer (not in endpoints/loader) and Job 2 will
+  # catch it.  If both jobs pass, the data layer is verified end-to-end.
+  # -----------------------------------------------------------------------------
+  backend-pytest:
+    name: Backend pytest (36 tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install backend deps (including pytest)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pytest
+        run: PYTHONPATH="" python -m pytest tests/ -v --tb=short
+        # --tb=short keeps output readable on failure
+
+  # -----------------------------------------------------------------------------
+  # Job 2: Backend uvicorn smoke (boots the API + hits /api/health)
+  # Catches: import errors, schema validation regressions, security header
+  # regressions, mid-deploy breakage (CI green but service won't boot).
+  #
+  # PASS criterion: curl http://127.0.0.1:8001/api/health returns 200 + valid
+  # JSON with version + errors_total_buffered fields.
+  # Falsification rule: if this job passes but /api/kpis or /api/leiloes
+  # break, Playwright Job 3 will catch it within minutes.
+  # -----------------------------------------------------------------------------
+  backend-smoke:
+    name: Backend uvicorn smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: backend-pytest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install backend deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Boot uvicorn in background
+        run: |
+          PYTHONPATH="" nohup python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8001 > /tmp/uvicorn.log 2>&1 &
+          echo "uvicorn PID: $!"
+          sleep 4  # give it time to start
+        # nohup + & runs detached; logs go to /tmp/uvicorn.log for debugging
+
+      - name: Smoke /api/health
+        run: |
+          curl -fsS http://127.0.0.1:8001/api/health | tee /tmp/health.json
+          echo
+          # Verify the JSON envelope (Phase 8 surface)
+          python -c "
+          import json, sys
+          data = json.load(open('/tmp/health.json'))
+          assert data.get('status') == 'ok', f'status not ok: {data}'
+          assert 'version' in data, 'version missing'
+          import re
+          assert re.match(r'\d+\.\d+\.\d+', data['version']), f'version format: {data[\"version\"]}'
+          assert data.get('errors_total_buffered') is not None, 'buffer missing'
+          # Accept int or numeric string (legacy backends may serialize differently)
+          buf = data['errors_total_buffered']
+          assert isinstance(buf, (int, float)) or (isinstance(buf, str) and buf.isdigit()), \
+              f'buffer not numeric: {type(buf).__name__}={buf!r}'
+          print('PASS: /api/health OK')
+          "
+
+      - name: Smoke /api/cache/info
+        run: |
+          curl -fsS http://127.0.0.1:8001/api/cache/info -o /dev/null -w "HTTP %{http_code}\n"
+
+      - name: Smoke /api/kpis
+        run: |
+          curl -fsS http://127.0.0.1:8001/api/kpis -o /tmp/kpis.json
+          python -c "
+          import json
+          data = json.load(open('/tmp/kpis.json'))
+          assert isinstance(data, dict), f'kpis must be dict, got {type(data)}'
+          # At least 3 numeric KPIs expected
+          numeric = sum(1 for v in data.values() if isinstance(v, (int, float)))
+          assert numeric >= 3, f'expected >=3 numeric KPIs, got {numeric}: {list(data.keys())}'
+          print(f'PASS: /api/kpis returned {len(data)} fields ({numeric} numeric)')
+          "
+
+      - name: Cleanup uvicorn
+        if: always()
+        run: |
+          pkill -f 'uvicorn app.api.main:app' || true
+          echo "=== Last 30 lines of uvicorn log ==="
+          tail -30 /tmp/uvicorn.log || true
+
+  # -----------------------------------------------------------------------------
+  # Job 3: Frontend Playwright e2e (58 tests, ~80s)
+  # Full SPA against real backend.  Catches: React regressions, contract
+  # drift between API and SPA, accessibility issues, i18n drift.
+  #
+  # PASS criterion: 58/58 Playwright tests pass.
+  # Falsification rule: if this passes but user complains in production, the
+  # bug is in production-only paths (crawler, e-leiloes.pt upstream) — not
+  # in the SPA or in our backend.
+  # -----------------------------------------------------------------------------
+  frontend-e2e:
+    name: Frontend Playwright (58 tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: backend-pytest
 
     steps:
       - uses: actions/checkout@v4
@@ -31,27 +158,50 @@ jobs:
           cache: 'pip'
 
       - name: Install backend deps
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Install frontend deps
         run: npm ci
 
       - name: TypeScript check
         run: npx tsc --noEmit || true
-        # Allow non-blocking TS errors on existing code
+        # Phase 3: pre-existing TS errors don't block (vite.config.ts known)
 
       - name: Build frontend
         run: npm run build
 
-      - name: Start API
-        run: |
-          npm run api &
-          sleep 5
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
 
-      - name: Start frontend
+      - name: Start backend (uvicorn)
         run: |
-          npm run dev &
-          sleep 5
+          PYTHONPATH="" nohup python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8001 > /tmp/uvicorn.log 2>&1 &
+          sleep 4
+          curl -fsS http://127.0.0.1:8001/api/health -o /dev/null -w "API health: HTTP %{http_code}\n"
 
-      - name: Run E2E tests
+      - name: Start frontend (vite dev)
+        run: |
+          nohup npm run dev > /tmp/vite.log 2>&1 &
+          sleep 8  # vite needs longer than uvicorn
+          curl -fsS http://127.0.0.1:5180/ -o /dev/null -w "SPA health: HTTP %{http_code}\n"
+
+      - name: Run Playwright e2e
         run: npx playwright test --reporter=line
+        # Fails the job if any test fails
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+        # 7-day retention so failures can be inspected post-merge
+
+      - name: Cleanup
+        if: always()
+        run: |
+          pkill -f 'uvicorn app.api.main:app' || true
+          pkill -f 'vite' || true

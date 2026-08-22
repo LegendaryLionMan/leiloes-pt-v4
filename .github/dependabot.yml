@@ -22,3 +22,14 @@ updates:
     labels:
       - "dependencies"
       - "automated"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "automated"
+    # Keep actions/checkout, setup-python, setup-node, etc. up to date
+    # so the CI pipeline (Phase 13.1) doesn't run on stale actions.

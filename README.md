@@ -1,5 +1,7 @@
 # leiloes-pt v4
 
+[![CI](https://github.com/LegendaryLionMan/leiloes-pt/actions/workflows/ci.yml/badge.svg)](https://github.com/LegendaryLionMan/leiloes-pt/actions/workflows/ci.yml)
+
 Lovable-style React + Vite + Tailwind dashboard for Portuguese government auctions (e-leilões.pt).
 
 **Stack:**
@@ -167,10 +169,24 @@ Pure ASGI middleware injects:
 See [ARCHITECTURE.md](ARCHITECTURE.md) for full endpoint catalog with auth, caching, and rate-limit policies.
 
 ## Testing
+
+### Locally
 ```bash
-npm run test:e2e          # 58 Playwright tests + 1 skipped
+npm run test:e2e          # 58 Playwright tests + 1 skipped (frontend e2e)
 PYTHONPATH="" python -m pytest tests/   # 36 backend pytest tests
 ```
+
+### CI (GitHub Actions)
+Every push and PR runs 3 jobs in `.github/workflows/ci.yml`:
+
+| Job | What it validates | Time |
+|---|---|---|
+| `backend-pytest` | 36 pytest tests (error handler, loader, endpoints, alertas, security) | ~30s |
+| `backend-smoke` | uvicorn boot + `/api/health` + `/api/cache/info` + `/api/kpis` smoke | ~10s |
+| `frontend-e2e` | 58 Playwright tests against full SPA + real backend | ~80s |
+
+`backend-smoke` and `frontend-e2e` depend on `backend-pytest` passing first (fail fast).
+`concurrency.cancel-in-progress: true` saves CI minutes on rapid pushes.
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment.
 
