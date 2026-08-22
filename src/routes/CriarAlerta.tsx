@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,6 +10,7 @@ import { Card, ErrorState, Spinner, toast } from '@/lib/ui';
 const AlertSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(80, 'Nome demasiado longo'),
   distrito: z.array(z.string()).default([]),
+  concelho: z.array(z.string()).default([]),
   categoria: z.array(z.string()).default([]),
   valor_max: z.coerce.number().min(0, 'Valor mínimo').optional().or(z.literal('')),
   desconto_min: z.coerce.number().min(0).max(100, '0-100').optional().or(z.literal('')),
@@ -26,7 +27,7 @@ export default function CriarAlerta() {
   const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<AlertForm>({
     resolver: zodResolver(AlertSchema),
     defaultValues: {
-      distrito: [], categoria: [], only_novos_24h: false, active: true, name: '',
+      distrito: [], concelho: [], categoria: [], only_novos_24h: false, active: true, name: '',
     },
   });
 
@@ -37,10 +38,11 @@ export default function CriarAlerta() {
     mutationFn: (data: AlertForm) => createAlerta({
       name: data.name,
       distrito: data.distrito,
+      concelho: data.concelho || [],
       categoria: data.categoria,
-      valor_max: data.valor_max === '' ? undefined : (data.valor_max ? Number(data.valor_max) : undefined),
-      desconto_min: data.desconto_min === '' ? undefined : (data.desconto_min ? Number(data.desconto_min) : undefined),
-      texto_livre: data.texto_livre || undefined,
+      valor_max: data.valor_max === '' ? null : (data.valor_max ? Number(data.valor_max) : null),
+      desconto_min: data.desconto_min === '' ? null : (data.desconto_min ? Number(data.desconto_min) : null),
+      texto_livre: data.texto_livre || null,
       only_novos_24h: data.only_novos_24h,
       active: data.active,
     }),

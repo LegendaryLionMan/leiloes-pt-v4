@@ -9,7 +9,8 @@ import CriarAlerta from './routes/CriarAlerta';
 import Matches from './routes/Matches';
 import Alertas from './routes/Alertas';
 import { fetchCacheInfo, refreshCache, fetchAlertas } from './lib/api';
-import { onToast, cx, toast } from '@/lib/ui';
+import { ToastContainer, emitToast } from './components/Toast';
+import { cx } from '@/lib/ui';
 
 const tabs = [
   { to: '/', label: 'Lista', icon: Home, end: true },
@@ -54,10 +55,10 @@ function CacheBadge() {
     setRefreshing(true);
     try {
       await refreshCache();
-      toast('Crawler iniciado — atualiza em ~60s');
+      emitToast({ message: 'Crawler iniciado — atualiza em ~60s', tone: 'success' });
       setTimeout(() => cache.refetch(), 30_000);
     } catch (e) {
-      toast('Erro ao iniciar crawler', 'error');
+      emitToast({ message: 'Erro ao iniciar crawler', tone: 'error' });
     } finally {
       setTimeout(() => setRefreshing(false), 10_000);
     }
@@ -119,6 +120,9 @@ function StaleCacheBanner() {
   );
 }
 
+
+
+
 function AlertsBell() {
   const alerts = useQuery({ queryKey: ['alertas', 'bell'], queryFn: () => fetchAlertas(true) });
   const activeCount = alerts.data?.count ?? 0;
@@ -134,33 +138,6 @@ function AlertsBell() {
   );
 }
 
-function Toaster() {
-  const [items, setItems] = useState<Array<{ id: number; message: string; tone: 'success' | 'error' | 'info' }>>([]);
-  useEffect(() => {
-    return onToast((t) => {
-      setItems((cur) => [...cur, t]);
-      setTimeout(() => setItems((cur) => cur.filter((i) => i.id !== t.id)), 3500);
-    });
-  }, []);
-  if (items.length === 0) return null;
-  return (
-    <div className="fixed bottom-4 right-4 z-50 space-y-2" role="status" aria-live="polite">
-      {items.map((it) => (
-        <div
-          key={it.id}
-          className={cx(
-            'rounded-lg px-4 py-3 shadow-lg text-sm font-medium min-w-[260px]',
-            it.tone === 'success' && 'bg-emerald-600 text-white',
-            it.tone === 'error' && 'bg-red-600 text-white',
-            it.tone === 'info' && 'bg-slate-900 text-white',
-          )}
-        >
-          {it.message}
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export default function App() {
   const [mobileNav, setMobileNav] = useState(false);
@@ -211,6 +188,7 @@ export default function App() {
             className="relative p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <AlertsBell />
+      
           </Link>
 
           <ThemeToggle />
@@ -277,7 +255,7 @@ export default function App() {
         </main>
       </div>
 
-      <Toaster />
+      <ToastContainer />
     </div>
   );
 }

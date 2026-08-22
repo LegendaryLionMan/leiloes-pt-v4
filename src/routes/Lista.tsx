@@ -11,7 +11,8 @@ import {
 } from '@/lib/api';
 import { Popover, SkeletonTable } from '@/lib/Drawer';
 import KPICard from '@/components/KPICard';
-import { Card, EmptyState, ErrorState, Pill, Spinner, cx, categoryEmoji, formatEUR, formatNumber, formatPct, urgencyBadge } from '@/lib/ui';
+import { Card, EmptyState, ErrorState, Pill, Spinner, cx, categoryEmoji, formatEUR, formatNumber, formatPct, urgencyBadge } from '@/lib/ui'
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 // Note: file path uses KPICICard.tsx due to write_file restrictions; the component file is KPICard.tsx.
 // We'll fix the import below — keeping this comment intentionally as a marker for the rename.
@@ -569,6 +570,7 @@ function EstadoPill({ estado }: { estado: string | undefined | null }) {
 }
 
 function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) {
+  const drawerRef = useFocusTrap(true);
   // ESC closes the drawer
   const handleKey = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
@@ -579,7 +581,7 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
   }, [handleKey]);
   return (
     <div
-      role="dialog"
+      role="dialog" ref={drawerRef} tabIndex={-1}
       aria-modal="true"
       aria-label={`Detalhes: ${item.titulo}`}
       className="fixed inset-0 z-50"

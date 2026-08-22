@@ -847,3 +847,52 @@ test('DATA — SQLite alertas busy_timeout aplicado (>= 5000ms)', async () => {
     }
   }
 });
+
+
+test('A11Y — drawer prende focus (focus trap)', async ({ page }) => {
+  await page.goto(SPA + '/');
+  await page.waitForResponse((r) => r.url().includes('/api/kpis') && r.status() === 200);
+  await new Promise((r) => setTimeout(r, 1500));
+  await page.click('text=Tavira — Imóveis + Terrenos');
+  await page.waitForTimeout(1500);
+  // Open drawer
+  await page.click('text=Apartamento sito em Tavira');
+  await page.waitForTimeout(1500);
+  // Tab through focusable elements — should stay inside drawer
+  const dialog = page.locator('[role="dialog"]');
+  await expect(dialog).toBeVisible();
+  const focusedTags: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.press('Tab');
+    await page.waitForTimeout(100);
+    const isInDialog = await page.evaluate(() => {
+      const d = document.querySelector('[role="dialog"]');
+      return d && d.contains(document.activeElement);
+    });
+    focusedTags.push(isInDialog ? 'IN' : 'OUT');
+  }
+  const escaped = focusedTags.filter(t => t === 'OUT').length;
+  // Trap pode permitir 1-2 escapes entre ciclos (Tab/Shift+Tab), mas maioria deve estar dentro
+  expect(escaped, `Focus trap violado: ${escaped}/6 escapes`).toBeLessThanOrEqual(2);
+});
+
+test('A11Y — LiveRegion existe no header para screen readers', async ({ page }) => {
+  await page.goto(SPA + '/');
+  await page.waitForTimeout(2000);
+  // Deve haver pelo menos 1 aria-live=polite
+  const count = await page.locator('[aria-live="polite"], [role="status"]').count();
+  expect(count, `Live regions: ${count} (esperado >= 1)`).toBeGreaterThanOrEqual(1);
+});
+
+test('A11Y — keyboard nav: ESC fecha drawer', async ({ page }) => {
+  await page.goto(SPA + '/');
+  await page.waitForTimeout(2000);
+  await page.click('text=Tavira — Imóveis + Terrenos');
+  await page.waitForTimeout(1500);
+  await page.click('text=Apartamento sito em Tavira');
+  await page.waitForTimeout(1500);
+  await expect(page.locator('[role="dialog"]')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(500);
+  await expect(page.locator('[role="dialog"]')).not.toBeVisible();
+});
