@@ -128,17 +128,40 @@ Pure ASGI middleware injects:
 - Visual chip with × button when active
 - Reload restores drill from URL
 
-## Routes (8)
+## Routes (6)
 | Route | Page | Key feature |
 |---|---|---|
 | `/` | Lista | Filter pills, KPIs, paginated table, drawer detail |
 | `/mapa` | Mapa | Leaflet+OSM map with district/concelho bubbles, drill-down |
 | `/visualizacoes` | Visualizações | Donut, bar, scatter, timeline, modality charts |
 | `/alertas` | Alertas | User alerts CRUD |
-| `/alerta/new` | Criar Alerta | Form to create alert with full filter set |
-| `/top` | Top | Top opportunities by savings |
-| `/config` | Settings | Theme, language, dark/light |
-| `/healthz` | API health | JSON status |
+| `/alerta/new` | CriarAlerta | Form to create alert with full filter set |
+| `/matches` | Matches | Cross-alerta × auction matching |
+
+## Endpoints (28)
+| Method | Path | Cache | Purpose |
+|---|---|---|---|
+| GET | `/api/leiloes` | 30s | List with filters, pagination, `?cursor=` |
+| GET | `/api/leiloes/{item_id}` | 30s | Single item detail |
+| GET | `/api/kpis` | 60s | 5 KPIs (active only) |
+| GET | `/api/kpis/estados` | 30s | Estado breakdown |
+| GET | `/api/top` | 30s | Top opportunities by savings |
+| GET | `/api/agregados/{categoria,distrito,concelho,modalidade}` | 30s | Chart data |
+| GET | `/api/mapa/{distritos,concelhos}` | 30s | Map bubble data |
+| GET | `/api/scatter/lance-vs-min` | 30s | Scatter data |
+| GET | `/api/series/{publicacao,encerramento,timeline}` | 30s | Time series |
+| GET | `/api/filtros/facets` | 30s | All filter distinct values |
+| GET | `/api/matches` | 30s | Cross-alerta matching |
+| GET | `/api/matches/{alert_id}` | 30s | Single alert matches |
+| GET | `/api/cache/info` | no-store | Cache freshness |
+| POST | `/api/cache/refresh` | n/a | Trigger crawler |
+| GET/POST | `/api/alertas` | 30s | List/create alert |
+| PATCH | `/api/alertas/{id}` | 30s | Update alert |
+| POST | `/api/alertas/{id}/toggle` | 30s | Toggle active |
+| DELETE | `/api/alertas/{id}` | 30s | Delete alert |
+| GET | `/api/export/leiloes.csv` | 30s | CSV export |
+| GET | `/api/health` | no-store | Health + error buffer (v0.4.8) |
+| POST | `/api/test/error` | n/a | Test exception handler (v0.4.8) |
 
 ## Endpoints (22)
 See [ARCHITECTURE.md](ARCHITECTURE.md) for full endpoint catalog with auth, caching, and rate-limit policies.
