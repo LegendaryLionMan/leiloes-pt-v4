@@ -1010,3 +1010,43 @@ test('DRILL — botão × no chip limpa filtro e URL', async ({ page }) => {
   const url = page.url();
   expect(url).not.toMatch(/[?&]cat=/);
 });
+
+
+test('DOCS — README/ARCHITECTURE/DEPLOYMENT/CHANGELOG existem e não têm broken links', async () => {
+  // Esta validação corre no fs do host antes dos testes browser. Replicamos aqui para garantir.
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.resolve(__dirname, '..');
+  const docs = ['README.md', 'ARCHITECTURE.md', 'DEPLOYMENT.md', 'CHANGELOG.md'];
+
+  for (const d of docs) {
+    const p = path.join(root, d);
+    expect(fs.existsSync(p), `${d} deve existir`).toBe(true);
+    const content = fs.readFileSync(p, 'utf-8');
+    expect(content.length, `${d} deve ter > 1000 chars`).toBeGreaterThan(1000);
+  }
+
+  // Validate every internal markdown link
+  const linkRe = /\[([^\]]+)\]\(([^)]+)\)/g;
+  for (const d of docs) {
+    const content = fs.readFileSync(path.join(root, d), 'utf-8');
+    let m;
+    while ((m = linkRe.exec(content)) !== null) {
+      const target = m[2];
+      if (target.startsWith('http') || target.startsWith('#')) continue;
+      const candidate = path.join(root, target);
+      expect(fs.existsSync(candidate), `${d}: link [${m[1]}](${target}) broken`).toBe(true);
+    }
+  }
+});
+
+test('DOCS — README menciona todas as 6 phases v0.4 (security, data quality, a11y, perf, i18n, drill)', async () => {
+  const fs = require('fs');
+  const path = require('path');
+  const content = fs.readFileSync(path.resolve(__dirname, '..', 'README.md'), 'utf-8');
+  for (const phase of ['v0.4.1', 'v0.4.2', 'v0.4.3', 'v0.4.4', 'v0.4.5', 'v0.4.6']) {
+    expect(content, `README deve mencionar ${phase}`).toContain(phase);
+  }
+  expect(content).toMatch(/22 endpoints/);
+  expect(content).toMatch(/8 routes/);
+});

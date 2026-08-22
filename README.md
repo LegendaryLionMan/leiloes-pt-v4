@@ -89,3 +89,67 @@ WCAG 2.2 AA targets met:
 - 2.5.5 Target Size — interactive elements ≥ 44x44px (except inline buttons ≥ 36px)
 - 1.1.1 Non-text Content — images have descriptive `alt`
 - 2.4.1 Bypass Blocks — skip-to-content link on first Tab
+
+
+## v0.4 updates (2026-08-22)
+
+### Security headers (v0.4.1)
+Pure ASGI middleware injects:
+- `Content-Security-Policy` (frame-ancestors 'none', script-src 'self', img-src 'self' data: https://www.e-leiloes.pt https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com)
+- `Strict-Transport-Security: max-age=31536000`
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy: geolocation/microphone/camera=()`
+
+### Data quality (v0.4.2)
+- `VALOR_SUSPEITO_RATIO_Nx` heuristic in loader.py (detects bugs upstream where `valorBase` comes in cêntimos — e.g. Tábua imóvel 240.000M€ instead of 240k€).
+- SQLite race-condition hardening: `busy_timeout=5000ms`, `journal_mode=WAL`, `synchronous=NORMAL`.
+
+### Accessibility (v0.4.3)
+- `useKeyboardNav` hook (j/k/Arrow/Enter/Esc/Home/End)
+- `useFocusTrap` hook (Tab/Shift+Tab confined, restore focus on close)
+- `<Toast>` with `emitToast()` global event bus + aria-live regions
+
+### Performance (v0.4.4)
+- Cursor-based pagination on `/api/leiloes?cursor=N` (filter `id > cursor`)
+- `next_cursor` in response body
+- Test covers: valid cursor filters correctly, invalid cursor ignored silently
+
+### Internationalization (v0.4.5)
+- `react-i18next` + `i18next-browser-languagedetector`
+- 2 locales: `pt-PT` (default) + `en`
+- 30 strings translated (KPIs, nav)
+- `<LanguageSwitcher>` in topbar (PT/EN toggle, aria-pressed, role=group)
+
+### Drill-down (v0.4.6)
+- Donut chart (categoria) now sync with URL: `?cat=X`
+- Bookmarkable shareable drill state
+- Visual chip with × button when active
+- Reload restores drill from URL
+
+## Routes (8)
+| Route | Page | Key feature |
+|---|---|---|
+| `/` | Lista | Filter pills, KPIs, paginated table, drawer detail |
+| `/mapa` | Mapa | Leaflet+OSM map with district/concelho bubbles, drill-down |
+| `/visualizacoes` | Visualizações | Donut, bar, scatter, timeline, modality charts |
+| `/alertas` | Alertas | User alerts CRUD |
+| `/alerta/new` | Criar Alerta | Form to create alert with full filter set |
+| `/top` | Top | Top opportunities by savings |
+| `/config` | Settings | Theme, language, dark/light |
+| `/healthz` | API health | JSON status |
+
+## Endpoints (22)
+See [ARCHITECTURE.md](ARCHITECTURE.md) for full endpoint catalog with auth, caching, and rate-limit policies.
+
+## Testing
+```bash
+npm run test:e2e          # 46 Playwright tests + 1 skipped
+cd app/api && pytest      # Python backend tests
+```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment.
+
+## Changelog
+See [CHANGELOG.md](CHANGELOG.md) for version history.
