@@ -491,3 +491,48 @@ test.describe('UI/UX meticulous validation', () => {
     expect(htmlCls2, 'html does NOT have dark class').not.toContain('dark');
   });
 });
+
+test('DRAWER link goes to canonical /evento/{referencia}', async ({ page }) => {
+  const r = await page.request.get(`${API}/leiloes?distrito=Faro&concelho=Tavira`);
+  const j = await r.json();
+  const api = j.items.find((it: any) => it.referencia === 'LO1505932026');
+  expect(api, 'LO1505932026 in Tavira set').toBeTruthy();
+  // Open the drawer
+  await page.goto(SPA + '/');
+  await page.waitForResponse((r) => r.url().includes('/api/kpis') && r.status() === 200);
+  await new Promise((r) => setTimeout(r, 1500));
+  // Use Tavira filter to find the row quickly
+  await page.click('text=Tavira — Imóveis');
+  await page.waitForTimeout(1500);
+  await page.click('text=Apartamento sito em Tavira');
+  await page.waitForTimeout(1000);
+  // Find the external link
+  const link = page.locator('a[href*="/evento/"]').first();
+  await expect(link, 'Drawer has external link to /evento/').toBeVisible();
+  const href = await link.getAttribute('href');
+  expect(href, 'Drawer link uses canonical https://www.e-leiloes.pt/evento/{ref}').toBe(`https://www.e-leiloes.pt/evento/${api.referencia}`);
+  expect(href, 'No broken legacy ?search= param').not.toContain('?search=');
+});
+
+test('STALE banner appears when cache > 24h', async ({ page }) => {
+  await page.goto(SPA + '/');
+  await page.waitForResponse((r) => r.url().includes('/api/cache/info') && r.status() === 200);
+  await new Promise((r) => setTimeout(r, 1500));
+  // Cache age is ~97h so banner should be visible
+  await expect(page.getByText(/Cache stale/).first()).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText(/Refrescar agora/).first()).toBeVisible();
+});
+
+test('MAPA drills distrito → concelhos with auto-zoom', async ({ page }) => {
+  await page.goto(SPA + '/mapa');
+  await page.waitForTimeout(2500);
+  // Click first district in leaderboard
+  const lisboa = page.locator('text=Lisboa').first();
+  await lisboa.click();
+  await page.waitForTimeout(2500);
+  // Should show concelhos
+  await expect(page.getByText(/Mostrando concelhos de Lisboa/)).toBeVisible();
+  await expect(page.getByText(/concelhos · \d+ leilões/)).toBeVisible();
+  // Top concelhos leaderboard header
+  await expect(page.getByText('TOP CONCELHOS')).toBeVisible();
+});

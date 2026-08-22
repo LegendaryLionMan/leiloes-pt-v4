@@ -72,6 +72,48 @@ export type Facets = {
   modalidades: string[];
 };
 
+export type ScatterPoint = {
+  x: number;
+  y: number;
+  delta_pct: number;
+  ref: string;
+  titulo: string;
+  distrito: string;
+  categoria: string;
+  modalidade: string;
+};
+
+export type EstadoCounts = {
+  'Em curso': number;
+  Terminado: number;
+  Cancelado: number;
+  Agendado: number;
+  total: number;
+};
+
+export type TimelineDay = {
+  dia: string;
+  publicacoes: number;
+  encerramentos: number;
+  valor_enc: number;
+};
+
+export type Timeline = {
+  count: number;
+  dias: TimelineDay[];
+  publicacoes_total: number;
+  encerramentos_total: number;
+};
+
+export type ModalidadeAgg = {
+  modalidade: string;
+  total: number;
+  valor_minimo_total: number;
+  valor_avaliacao_total: number;
+  com_lance: number;
+  desconto_medio_pct: number;
+};
+
 export type Alert = {
   id: string;
   name: string;
@@ -234,3 +276,46 @@ export function csvExportUrl(f: FilterParams = {}): string {
 }
 
 // cache-bust
+
+
+/* Drill-down & scatter */
+export function fetchScatter(filters: { distrito?: string[]; categoria?: string[]; modalidade?: string[]; max_points?: number } = {}): Promise<{ count: number; items: ScatterPoint[] }> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v === undefined || v === null) continue;
+    if (Array.isArray(v)) for (const x of v) params.append(k, String(x));
+    else params.append(k, String(v));
+  }
+  return fetch(`/api/scatter/lance-vs-min?${params}`).then((r) => r.json());
+}
+
+export function fetchEstados(filters: { distrito?: string[]; categoria?: string[] } = {}): Promise<EstadoCounts> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v === undefined || v === null) continue;
+    if (Array.isArray(v)) for (const x of v) params.append(k, String(x));
+  }
+  return fetch(`/api/kpis/estados?${params}`).then((r) => r.json());
+}
+
+export function fetchTimeline(filters: { distrito?: string[]; categoria?: string[] } = {}): Promise<Timeline> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v === undefined || v === null) continue;
+    if (Array.isArray(v)) for (const x of v) params.append(k, String(x));
+  }
+  return fetch(`/api/series/timeline?${params}`).then((r) => r.json());
+}
+
+export function refreshCache(): Promise<{ status: string; note: string }> {
+  return fetch('/api/cache/refresh', { method: 'POST' }).then((r) => r.json());
+}
+
+export function fetchModalidade(filters: { distrito?: string[]; categoria?: string[] } = {}): Promise<{ count: number; items: ModalidadeAgg[] }> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v === undefined || v === null) continue;
+    if (Array.isArray(v)) for (const x of v) params.append(k, String(x));
+  }
+  return fetch(`/api/agregados/modalidade?${params}`).then((r) => r.json());
+}

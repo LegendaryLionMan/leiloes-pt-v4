@@ -499,6 +499,91 @@ def export_csv(
     )
 
 
+# --- Cache management ------------------------------------------------------
+
+
+@app.post("/api/cache/refresh")
+def cache_refresh():
+    """Dispara o crawler em background para refrescar a cache. Não bloqueia."""
+    import subprocess
+    import sys
+    import threading
+    def _run():
+        try:
+            venv_python = sys.executable  # uvicorn's python
+            cwd = str(VENDOR_PATH)
+            cmd = [venv_python, "-m", "data.crawler_eleiloes"]
+            subprocess.run(cmd, cwd=cwd, timeout=300, check=False)
+        except Exception as e:
+            print(f"[crawler-bg] error: {e}", file=sys.stderr)
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    return {"status": "started", "note": "A cache será refrescada em background (~60-120s). Verifique /api/cache/info."}
+
+
+# --- Drill-down & scatter -------------------------------------------------
+
+
+@app.get("/api/scatter/lance-vs-min")
+def scatter_lance_vs_min(
+    distrito: Optional[List[str]] = Query(None),
+    categoria: Optional[List[str]] = Query(None),
+    modalidade: Optional[List[str]] = Query(None),
+    max_points: int = Query(500, ge=10, le=2000),
+):
+    """Pontos para scatter lance_atual vs valor_minimo. Para o grafico exploratorio."""
+    items, df = _load_items()
+    df_filt = analytics.aplicar_filtros(
+        df,
+        distritos=distrito,
+        categorias=categoria,
+    )
+    # modalidade isn't in aplicar_filtros, filter manually
+    if modalidade:
+        df_filt = df_filt[df_filt["modalidade"].isin(modalidade)]
+    pts = analytics.lance_vs_min_scatter(df_filt, max_points=max_points)
+    return {"count": len(pts), "items": pts}
+
+
+@app.get("/api/kpis/estados")
+def kpis_estados(
+    distrito: Optional[List[str]] = Query(None),
+    categoria: Optional[List[str]] = Query(None),
+):
+    """Contagens por estado (Em curso / Terminado / Cancelado / Agendado)."""
+    items, df = _load_items()
+    df_filt = analytics.aplicar_filtros(df, distritos=distrito, categorias=categoria)
+    return analytics.kpis_por_estado(df_filt)
+
+
+@app.get("/api/series/timeline")
+def series_timeline(
+    distrito: Optional[List[str]] = Query(None),
+    categoria: Optional[List[str]] = Query(None),
+):
+    """Publicacoes e encerramentos por dia (ultimos 60 dias + proximos 60)."""
+    items, df = _load_items()
+    df_filt = analytics.aplicar_filtros(df, distritos=distrito, categorias=categoria)
+    t = analytics.timeline_completa(df_filt)
+    return {"count": len(t["dias"]), **t}
+
+
+@app.get("/api/agregados/modalidade")
+def agg_modalidade(
+    distrito: Optional[List[str]] = Query(None),
+    categoria: Optional[List[str]] = Query(None),
+):
+    """Conta + valor por modalidade (Leilao Online vs Negocio Particular)."""
+    items, df = _load_items()
+    df_filt = analytics.aplicar_filtros(df, distritos=distrito, categorias=categoria)
+    agg = analytics.agregado_por_modalidade(df_filt)
+    return {
+        "count": len(agg),
+        "items": [_row_to_json(r) for r in agg.to_dict(orient="records")],
+    }
+
+
 # --- Alerts ---------------------------------------------------------------
 
 def _row_to_alert(row: sqlite3.Row) -> Dict[str, Any]:

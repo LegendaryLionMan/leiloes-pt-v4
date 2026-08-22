@@ -44,7 +44,10 @@ def kpis_gerais(df: pd.DataFrame) -> Dict[str, Any]:
         "desconto_medio_pct": safe_mean("poupanca_pct"),
         "distritos_cobertos": int(df["distrito"].nunique()) if "distrito" in df.columns else 0,
         "concelhos_cobertos": int(df["concelho"].nunique()) if "concelho" in df.columns else 0,
-        "encerram_prox_7d": int((df["dias_ate_encerramento"] <= 7).sum()) if "dias_ate_encerramento" in df.columns else 0,
+        # Encerram ≤7d: items QUE AINDA VAO ENCERRAR (exclui encerrados/cancelados passados)
+        "encerram_prox_7d": int(
+            ((df["dias_ate_encerramento"] >= 0) & (df["dias_ate_encerramento"] <= 7)).sum()
+        ) if "dias_ate_encerramento" in df.columns else 0,
     }
 
 
@@ -195,3 +198,104 @@ def aplicar_filtros(
     if ordenar_por in out.columns:
         out = out.sort_values(ordenar_por, ascending=ascending)
     return out.reset_index(drop=True)
+
+
+def lance_vs_min_scatter(df: pd.DataFrame, max_points: int = 500) -> list[dict]:
+    """Pontos para scatter lance_atual vs valor_minimo.
+
+    Cada ponto: {x: valor_minimo, y: lance_atual, ref, titulo, distrito}.
+    Filtra para items com lance_atual > 0.
+    """
+    df_bid = df[(df["lance_atual"] > 0) & (df["valor_minimo"] > 0)].copy()
+    # Stratified sample if too many
+    if len(df_bid) > max_points:
+        df_bid = df_bid.sample(n=max_points, random_state=42)
+    pts = []
+    for _, r in df_bid.iterrows():
+        # discount % vs min (negative = below floor, positive = overbid)
+        delta_pct = ((r["lance_atual"] - r["valor_minimo"]) / r["valor_minimo"]) * 100
+        pts.append({
+            "x": float(r["valor_minimo"]),
+            "y": float(r["lance_atual"]),
+            "delta_pct": round(delta_pct, 1),
+            "ref": r["referencia"],
+            "titulo": (r["titulo"] or "")[:60],
+            "distrito": r.get("distrito", ""),
+            "categoria": r.get("categoria", ""),
+            "modalidade": r.get("modalidade", ""),
+        })
+    return pts
+
+
+def kpis_por_estado(df: pd.DataFrame) -> dict:
+    """KPIs por estado (Em curso / Cancelado / Terminado / Agendado)."""
+    if "estado" not in df.columns:
+        return {}
+    g = df.groupby("estado").size()
+    out = {}
+    for estado in ["Em curso", "Terminado", "Cancelado", "Agendado"]:
+        out[estado] = int(g.get(estado, 0))
+    out["total"] = int(g.sum())
+    return out
+
+
+def timeline_completa(df: pd.DataFrame) -> dict:
+    """Publicações e encerramentos por dia (60 dias).
+
+    Returns:
+      {
+        "dias": [{"dia": "2026-07-01", "publicacoes": N, "encerramentos": M, "valor_enc": K}, ...],
+        "publicacoes_total": ...,
+        "encerramentos_total": ...,
+      }
+    """
+    today = datetime.now()
+    cutoff_pub = today - timedelta(days=60)
+    cutoff_enc = today - timedelta(days=10)
+
+    pub = df[(df["data_publicacao"] >= cutoff_pub) & (df["data_publicacao"] <= today)].copy()
+    pub["dia"] = pub["data_publicacao"].dt.date
+    pub_g = pub.groupby("dia").size()
+
+    enc = df[(df["data_encerramento"] >= cutoff_enc) & (df["data_encerramento"] <= today + timedelta(days=60))].copy()
+    enc["dia"] = enc["data_encerramento"].dt.date
+    enc_g = enc.groupby("dia").agg(
+        encerramentos=("id", "count"),
+        valor_enc=("valor_minimo", "sum"),
+    )
+
+    # Build all days in window
+    days = []
+    start = (today - timedelta(days=10)).date()
+    end = (today + timedelta(days=60)).date()
+    cur = start
+    while cur <= end:
+        pub_count = int(pub_g.get(cur, 0))
+        enc_row = enc_g.loc[cur] if cur in enc_g.index else None
+        days.append({
+            "dia": cur.isoformat(),
+            "publicacoes": pub_count,
+            "encerramentos": int(enc_row["encerramentos"]) if enc_row is not None else 0,
+            "valor_enc": float(enc_row["valor_enc"]) if enc_row is not None else 0,
+        })
+        cur += timedelta(days=1)
+    return {
+        "dias": days,
+        "publicacoes_total": int(pub_g.sum()),
+        "encerramentos_total": int(enc_g["encerramentos"].sum()) if not enc_g.empty else 0,
+    }
+
+
+def agregado_por_modalidade(df: pd.DataFrame) -> pd.DataFrame:
+    """Conta + valor por modalidade."""
+    if "modalidade" not in df.columns:
+        return pd.DataFrame()
+    agg = df.groupby("modalidade").agg(
+        total=("id", "count"),
+        valor_minimo_total=("valor_minimo", "sum"),
+        valor_avaliacao_total=("valor_avaliacao", "sum"),
+        com_lance=("lance_atual", lambda s: int((s > 0).sum())),
+        desconto_medio_pct=("poupanca_pct", "mean"),
+    ).reset_index()
+    agg["desconto_medio_pct"] = agg["desconto_medio_pct"].round(1)
+    return agg.sort_values("total", ascending=False)

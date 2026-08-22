@@ -19,12 +19,19 @@ test.describe('leiloes-pt v4 smoke', () => {
     await expect(page.getByText(/1 distrito\(s\).*1 concelho\(s\).*1 categoria\(s\)/)).toBeVisible();
   });
 
-  test('visualizations page renders all 4 chart cards', async ({ page }) => {
+  test('visualizations page renders chart cards + scatter + timeline', async ({ page }) => {
     await page.goto(BASE + '/visualizacoes');
+    // 4 estado cards (Em curso / Terminado / Cancelado / Agendado)
+    await expect(page.getByText('Em curso')).toBeVisible();
+    await expect(page.getByText('Terminado')).toBeVisible();
+    await expect(page.getByText('Cancelado')).toBeVisible();
+    await expect(page.getByText('Agendado')).toBeVisible();
+    // 5 chart cards
     await expect(page.getByText('Por categoria (quantidade)')).toBeVisible();
     await expect(page.getByText('Por distrito (top 10)')).toBeVisible();
-    await expect(page.getByText(/Publicações nos últimos 30 dias/)).toBeVisible();
-    await expect(page.getByText(/Encerramentos nos próximos 30 dias/)).toBeVisible();
+    await expect(page.getByText('Linha temporal — publicações vs encerramentos')).toBeVisible();
+    await expect(page.getByText('Lance atual vs Valor mínimo')).toBeVisible();
+    await expect(page.getByText('Por modalidade')).toBeVisible();
   });
 
   test('mapa page renders real Leaflet map with 18 district bubbles', async ({ page }) => {

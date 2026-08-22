@@ -8,8 +8,8 @@ import Visualizacoes from './routes/Visualizacoes';
 import CriarAlerta from './routes/CriarAlerta';
 import Matches from './routes/Matches';
 import Alertas from './routes/Alertas';
-import { fetchCacheInfo, fetchAlertas } from './lib/api';
-import { onToast, cx } from '@/lib/ui';
+import { fetchCacheInfo, refreshCache, fetchAlertas } from './lib/api';
+import { onToast, cx, toast } from '@/lib/ui';
 
 const tabs = [
   { to: '/', label: 'Lista', icon: Home, end: true },
@@ -45,21 +45,77 @@ function ThemeToggle() {
 
 function CacheBadge() {
   const cache = useQuery({ queryKey: ['cache-info'], queryFn: fetchCacheInfo, refetchInterval: 60_000 });
+  const [refreshing, setRefreshing] = useState(false);
   if (!cache.data) return null;
   const age = cache.data.cache_age_hours ?? 0;
   const stale = cache.data.is_stale;
   const label = age < 1 ? `${Math.round(age * 60)}min` : age < 24 ? `${Math.round(age)}h` : `${Math.round(age / 24)}d`;
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshCache();
+      toast('Crawler iniciado — atualiza em ~60s');
+      setTimeout(() => cache.refetch(), 30_000);
+    } catch (e) {
+      toast('Erro ao iniciar crawler', 'error');
+    } finally {
+      setTimeout(() => setRefreshing(false), 10_000);
+    }
+  };
   return (
-    <span
-      className={cx(
-        'inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full',
-        stale ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-      )}
-      title={`Cache atualizado há ${label}. Fonte: ${cache.data.fonte}`}
-    >
-      <Activity size={12} /> {label}
-    </span>
+    <div className="flex items-center gap-1">
+      <span
+        className={cx(
+          'inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full',
+          stale ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+        )}
+        title={`Cache atualizado há ${label}. Fonte: ${cache.data.fonte}`}
+      >
+        <Activity size={12} /> {label}
+      </span>
+      <button
+        onClick={handleRefresh}
+        disabled={refreshing}
+        className="text-xs px-2 py-1 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-brand-teal transition-colors disabled:opacity-50"
+        title="Refrescar cache via crawler (demora ~60s)"
+        aria-label="Refrescar cache"
+      >
+        {refreshing ? '⏳' : '🔄'}
+      </button>
+    </div>
+  );
+}
+
+function StaleCacheBanner() {
+  const cache = useQuery({ queryKey: ['cache-info'], queryFn: fetchCacheInfo, refetchInterval: 30_000 });
+  if (!cache.data?.is_stale) return null;
+  const age = cache.data.cache_age_hours ?? 0;
+  const days = Math.floor(age / 24);
+  const hours = Math.floor(age % 24);
+  const ageTxt = days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+  return (
+    <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-4 sm:px-6 py-2 text-sm flex items-center justify-between flex-wrap">
+      <p className="text-amber-800 dark:text-amber-200 flex items-center gap-2">
+        <span aria-hidden>⚠️</span>
+        <span>
+          <strong>Cache stale ({ageTxt}).</strong> Os dados foram refrescados há {ageTxt}; valores podem estar desactualizados.
+        </span>
+      </p>
+      <button
+        onClick={async () => {
+          try {
+            await refreshCache();
+            window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Crawler iniciado — atualiza em ~60s', tone: 'success' } }));
+          } catch {
+            window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Erro ao iniciar crawler', tone: 'error' } }));
+          }
+        }}
+        className="text-xs px-3 py-1 rounded-full bg-amber-600 text-white font-medium hover:bg-amber-700 transition-colors"
+      >
+        🔄 Refrescar agora
+      </button>
+    </div>
   );
 }
 
@@ -121,6 +177,8 @@ export default function App() {
       >
         Saltar para o conteúdo principal
       </a>
+
+      <StaleCacheBanner />
 
       {/* Topbar */}
       <header className="sticky top-0 z-40 bg-white/85 dark:bg-slate-900/85 backdrop-blur border-b border-slate-200 dark:border-slate-800">

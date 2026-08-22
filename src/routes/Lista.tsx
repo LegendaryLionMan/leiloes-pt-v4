@@ -650,10 +650,10 @@ function DetailDrawer({ item, onClose }: { item: Leilao; onClose: () => void }) 
           )}
 
           {item.referencia && (
-            <a href={`https://www.e-leiloes.pt/?search=${encodeURIComponent(item.referencia)}`}
+            <a href={`https://www.e-leiloes.pt/evento/${encodeURIComponent(item.referencia)}`}
                target="_blank" rel="noopener noreferrer"
                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-teal text-white font-medium hover:opacity-90 min-h-[44px]"
-               title={`Procura a referência ${item.referencia} no e-leilões.pt`}>
+               title={`Abre o leilão ${item.referencia} no e-leilões.pt`}>
               <ExternalLink size={16} /> Abrir no e-leilões.pt
             </a>
           )}
