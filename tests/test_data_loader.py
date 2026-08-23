@@ -8,19 +8,18 @@ Tests data loader + heuristics:
 Falsification rule: if heuristic regresses, the e-leiloes.pt "Tábua terrenos"
 bug ships without flag → users see bogus prices in the UI.
 
+Phase 15: vendor/leiloes-pt-data/ was reorganised into app/leb/ as a proper
+Python package. Import path is now `from app.leb.data import loader` —
+the previous `from data import loader` (which depended on a vendor sys.path
+hack in conftest.py) is no longer needed.
+
 Run: cd C:/Users/lion_/projetos/leiloes-pt-v4 && python -m pytest tests/test_data_loader.py -v
 """
 from __future__ import annotations
 
-import sys
 from datetime import datetime, timedelta
-from pathlib import Path
 
-# Add vendor to sys.path so `data.*` resolves (mirrors what main.py does)
-VENDOR = Path(__file__).resolve().parent.parent / "vendor" / "leiloes-pt-data"
-sys.path.insert(0, str(VENDOR))
-
-from data import loader  # noqa: E402
+from app.leb.data import loader
 
 
 def test_carregar_leiloes_returns_real_items_with_expected_shape() -> None:

@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 # ────── Loader ──────
 
 def test_loader_basico():
-    from data.loader import carregar_leiloes
+    from app.leb.data.loader import carregar_leiloes
     r = carregar_leiloes(usar_cache=False)
     items = r["items"]
     assert len(items) >= 360, f"Esperado >=360, obtido {len(items)}"
@@ -20,7 +20,7 @@ def test_loader_basico():
 
 def test_carregar_dados_reais():
     """Verifica que a cache real está populada."""
-    from data.loader import carregar_leiloes
+    from app.leb.data.loader import carregar_leiloes
     r = carregar_leiloes(usar_cache=True)
     assert len(r["items"]) > 0, "Cache deve estar populado"
     assert r["fonte"] == "e-leilões.pt"
@@ -28,28 +28,28 @@ def test_carregar_dados_reais():
 
 
 def test_loader_cache_reusa():
-    from data.loader import carregar_leiloes
+    from app.leb.data.loader import carregar_leiloes
     a = carregar_leiloes(usar_cache=True)
     b = carregar_leiloes(usar_cache=True)
     assert len(a["items"]) == len(b["items"])
 
 
 def test_loader_datas_serializadas():
-    from data.loader import carregar_leiloes
+    from app.leb.data.loader import carregar_leiloes
     r = carregar_leiloes(usar_cache=True)
     p = r["items"][0]
     assert isinstance(p["data_encerramento"], str)
 
 
 def test_loader_forcar_refresh():
-    from data.loader import carregar_leiloes
+    from app.leb.data.loader import carregar_leiloes
     a = carregar_leiloes(usar_cache=False, forcar_refresh=True)
     b = carregar_leiloes(usar_cache=False, forcar_refresh=True)
     assert len(a["items"]) == len(b["items"])
 
 
 def test_loader_ids_unicos():
-    from data.loader import carregar_leiloes
+    from app.leb.data.loader import carregar_leiloes
     r = carregar_leiloes(usar_cache=True)
     items = r["items"]
     ids = [l["id"] for l in items]
@@ -57,7 +57,7 @@ def test_loader_ids_unicos():
 
 
 def test_loader_campos_obrigatorios():
-    from data.loader import carregar_leiloes
+    from app.leb.data.loader import carregar_leiloes
     r = carregar_leiloes(usar_cache=True)
     p = r["items"][0]
     for k in ("id", "referencia", "titulo", "categoria", "distrito", "valor_minimo"):
@@ -67,8 +67,8 @@ def test_loader_campos_obrigatorios():
 # ────── Analytics ──────
 
 def test_analytics_para_dataframe():
-    from data.loader import carregar_leiloes
-    from data.analytics import para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe
     r = carregar_leiloes(usar_cache=True)
     df = para_dataframe(r["items"])
     assert len(df) == len(r["items"])
@@ -76,8 +76,8 @@ def test_analytics_para_dataframe():
 
 
 def test_analytics_kpis_basicos():
-    from data.loader import carregar_leiloes
-    from data.analytics import kpis_gerais, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import kpis_gerais, para_dataframe
     r = carregar_leiloes(usar_cache=True)
     df = para_dataframe(r["items"])
     kpis = kpis_gerais(df)
@@ -87,8 +87,8 @@ def test_analytics_kpis_basicos():
 
 
 def test_analytics_filtro_distrito():
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     r = carregar_leiloes(usar_cache=True)
     df = para_dataframe(r["items"])
     df_f = aplicar_filtros(df, distritos=["Faro"])
@@ -97,8 +97,8 @@ def test_analytics_filtro_distrito():
 
 
 def test_analytics_top_oportunidades():
-    from data.loader import carregar_leiloes
-    from data.analytics import top_oportunidades, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import top_oportunidades, para_dataframe
     r = carregar_leiloes(usar_cache=True)
     df = para_dataframe(r["items"])
     top = top_oportunidades(df, top_n=5)
@@ -122,7 +122,7 @@ def cleanup_alertas_tmp(tmp):
 
 
 def test_alertas_criar():
-    from data import alertas
+    from app.leb.data import alertas
     tmp, f = setup_alertas_tmp()
     try:
         alertas.ALERTAS_FILE = f
@@ -133,7 +133,7 @@ def test_alertas_criar():
 
 
 def test_alertas_persiste():
-    from data import alertas
+    from app.leb.data import alertas
     tmp, f = setup_alertas_tmp()
     try:
         alertas.ALERTAS_FILE = f
@@ -145,7 +145,7 @@ def test_alertas_persiste():
 
 
 def test_alertas_eliminar():
-    from data import alertas
+    from app.leb.data import alertas
     tmp, f = setup_alertas_tmp()
     try:
         alertas.ALERTAS_FILE = f
@@ -160,18 +160,18 @@ def test_alertas_eliminar():
 # ────── Tema ──────
 
 def test_tema_paleta_dark():
-    from data.theme import COLORS_DARK
+    from app.leb.data.theme import COLORS_DARK
     assert "panel" in COLORS_DARK
     assert "accent" in COLORS_DARK
 
 
 def test_tema_paleta_light():
-    from data.theme import COLORS_LIGHT
+    from app.leb.data.theme import COLORS_LIGHT
     assert "panel" in COLORS_LIGHT
 
 
 def test_tema_cores_completas():
-    from data.theme import COLORS_DARK, COLORS_LIGHT
+    from app.leb.data.theme import COLORS_DARK, COLORS_LIGHT
     required = {"panel", "accent"}
     for palette in (COLORS_DARK, COLORS_LIGHT):
         assert required.issubset(palette.keys())
@@ -180,12 +180,12 @@ def test_tema_cores_completas():
 # ────── Geo ──────
 
 def test_geo_todos_distritos():
-    from data.geo_portugal import COORDENADAS_DISTRITOS
+    from app.leb.data.geo_portugal import COORDENADAS_DISTRITOS
     assert len(COORDENADAS_DISTRITOS) >= 18
 
 
 def test_geo_lisboa_porto_presentes():
-    from data.geo_portugal import COORDENADAS_DISTRITOS
+    from app.leb.data.geo_portugal import COORDENADAS_DISTRITOS
     assert "Lisboa" in COORDENADAS_DISTRITOS
     assert "Porto" in COORDENADAS_DISTRITOS
 
@@ -193,9 +193,9 @@ def test_geo_lisboa_porto_presentes():
 # ────── Heatmap ──────
 
 def test_heatmap_retorna_dataframe():
-    from data.heatmap import heatmap_encerramentos
-    from data.loader import carregar_leiloes
-    from data.analytics import para_dataframe
+    from app.leb.data.heatmap import heatmap_encerramentos
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe
     r = carregar_leiloes(usar_cache=True)
     df = para_dataframe(r["items"])
     fig = heatmap_encerramentos(df)
@@ -205,9 +205,9 @@ def test_heatmap_retorna_dataframe():
 # ────── Dashboards ──────
 
 def test_donut_categorias_basico():
-    from data.dashboards import donut_categorias
-    from data.loader import carregar_leiloes
-    from data.analytics import para_dataframe
+    from app.leb.data.dashboards import donut_categorias
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe
     r = carregar_leiloes(usar_cache=True)
     df = para_dataframe(r["items"])
     fig = donut_categorias(df)
@@ -215,9 +215,9 @@ def test_donut_categorias_basico():
 
 
 def test_bar_top_concelhos_basico():
-    from data.dashboards import bar_top_concelhos
-    from data.loader import carregar_leiloes
-    from data.analytics import para_dataframe
+    from app.leb.data.dashboards import bar_top_concelhos
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe
     r = carregar_leiloes(usar_cache=True)
     df = para_dataframe(r["items"])
     fig = bar_top_concelhos(df, top=10)
@@ -225,7 +225,7 @@ def test_bar_top_concelhos_basico():
 
 
 def test_gauge_poupanca_retorna_fig():
-    from data.dashboards import gauge_poupanca
+    from app.leb.data.dashboards import gauge_poupanca
     fig = gauge_poupanca(50.0, 1000.0)
     assert fig is not None
 
@@ -233,8 +233,8 @@ def test_gauge_poupanca_retorna_fig():
 # ────── Adversarial ──────
 
 def test_adversarial_filtro_impossivel():
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     r = carregar_leiloes(usar_cache=True)
     df = para_dataframe(r["items"])
     df_f = aplicar_filtros(df, distritos=["XYZ_NEXISTE"])
@@ -242,8 +242,8 @@ def test_adversarial_filtro_impossivel():
 
 
 def test_adversarial_texto_vazio():
-    from data.analytics import aplicar_filtros, para_dataframe
-    from data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
     r = carregar_leiloes(usar_cache=True)
     df = para_dataframe(r["items"])
     df_f = aplicar_filtros(df, texto_livre="")
@@ -251,8 +251,8 @@ def test_adversarial_texto_vazio():
 
 
 def test_adversarial_unicode_acentos():
-    from data.analytics import aplicar_filtros, para_dataframe
-    from data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
     r = carregar_leiloes(usar_cache=True)
     df = para_dataframe(r["items"])
     df_f = aplicar_filtros(df, distritos=["Lisboa"])
@@ -277,8 +277,8 @@ def test_integracao_todos_modulos():
 
 
 def test_integracao_pipeline_completo():
-    from data.loader import carregar_leiloes
-    from data.analytics import para_dataframe, aplicar_filtros, top_oportunidades
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe, aplicar_filtros, top_oportunidades
     r = carregar_leiloes(usar_cache=True)
     assert r["fonte"] == "real", "Esperava dados reais"
     df = para_dataframe(r["items"])
@@ -290,16 +290,16 @@ def test_integracao_pipeline_completo():
 # ────── Analytics (expandido) ──────
 
 def test_analytics_poupanca_positiva():
-    from data.loader import carregar_leiloes
-    from data.analytics import para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     if "poupanca_potencial" in df.columns:
         assert (df["poupanca_potencial"] >= 0).all()
 
 
 def test_analytics_poupanca_pct_range():
-    from data.loader import carregar_leiloes
-    from data.analytics import para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     if "poupanca_pct" in df.columns:
         assert (df["poupanca_pct"] >= 0).all()
@@ -307,8 +307,8 @@ def test_analytics_poupanca_pct_range():
 
 
 def test_analytics_kpis_filtro_vazio():
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, kpis_gerais, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, kpis_gerais, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     df_vazio = aplicar_filtros(df, distritos=["XYZ"])
     k = kpis_gerais(df_vazio)
@@ -316,8 +316,8 @@ def test_analytics_kpis_filtro_vazio():
 
 
 def test_analytics_filtro_categoria():
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     df_f = aplicar_filtros(df, categorias=["Imóvel"])
     if len(df_f) > 0:
@@ -325,8 +325,8 @@ def test_analytics_filtro_categoria():
 
 
 def test_analytics_filtro_concelho():
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     df_f = aplicar_filtros(df, concelhos=["Lisboa"])
     if len(df_f) > 0:
@@ -334,8 +334,8 @@ def test_analytics_filtro_concelho():
 
 
 def test_analytics_filtro_valor_extremo():
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     df_f = aplicar_filtros(df, valor_min=1_000_000)
     if len(df_f) > 0:
@@ -343,8 +343,8 @@ def test_analytics_filtro_valor_extremo():
 
 
 def test_analytics_filtro_texto():
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     df_f = aplicar_filtros(df, texto_livre="Prédio")
     # Pode não dar resultados se não houver Prédios com essa keyword
@@ -352,8 +352,8 @@ def test_analytics_filtro_texto():
 
 
 def test_analytics_agregado_categoria():
-    from data.loader import carregar_leiloes
-    from data.analytics import agregado_por_categoria, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import agregado_por_categoria, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     agg = agregado_por_categoria(df)
     assert len(agg) >= 4
@@ -361,8 +361,8 @@ def test_analytics_agregado_categoria():
 
 
 def test_analytics_agregado_distrito():
-    from data.loader import carregar_leiloes
-    from data.analytics import agregado_por_distrito, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import agregado_por_distrito, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     if "agregado_por_distrito" in dir(__import__("data.analytics", fromlist=["agregado_por_distrito"])):
         agg = agregado_por_distrito(df)
@@ -370,8 +370,8 @@ def test_analytics_agregado_distrito():
 
 
 def test_analytics_ordenacao():
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     df_asc = aplicar_filtros(df, ordenar_por="valor_minimo", ordem="asc")
     df_desc = aplicar_filtros(df, ordenar_por="valor_minimo", ordem="desc")
@@ -382,16 +382,16 @@ def test_analytics_ordenacao():
 
 
 def test_analytics_novos_24h():
-    from data.loader import carregar_leiloes
-    from data.analytics import novos_ultimas_24h, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import novos_ultimas_24h, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     novos = novos_ultimas_24h(df)
     assert len(novos) >= 0
 
 
 def test_analytics_encerram_60d():
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     df_f = aplicar_filtros(df, so_encerram_prox_30d=True)
     if len(df_f) > 0:
@@ -399,8 +399,8 @@ def test_analytics_encerram_60d():
 
 
 def test_analytics_dias_encerramento():
-    from data.loader import carregar_leiloes
-    from data.analytics import para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     if "dias_ate_encerramento" in df.columns:
         assert (df["dias_ate_encerramento"] >= -365).all()
@@ -408,8 +408,8 @@ def test_analytics_dias_encerramento():
 
 
 def test_analytics_multiplos_filtros():
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     df_f = aplicar_filtros(df, distritos=["Faro", "Lisboa"], categorias=["Imóvel"], valor_min=50000)
     if len(df_f) > 0:
@@ -418,8 +418,8 @@ def test_analytics_multiplos_filtros():
 
 
 def test_analytics_filtro_novos_24h():
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     df_f = aplicar_filtros(df, so_novos_24h=True)
     if len(df_f) > 0 and "novo_24h" in df.columns:
@@ -429,7 +429,7 @@ def test_analytics_filtro_novos_24h():
 # ────── Alertas (expandido) ──────
 
 def test_alertas_toggle():
-    from data import alertas
+    from app.leb.data import alertas
     tmp, f = setup_alertas_tmp()
     try:
         alertas.ALERTAS_FILE = f
@@ -444,9 +444,9 @@ def test_alertas_toggle():
 
 
 def test_alertas_verificar_matches():
-    from data import alertas
-    from data.loader import carregar_leiloes
-    from data.analytics import para_dataframe
+    from app.leb.data import alertas
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe
     tmp, f = setup_alertas_tmp()
     try:
         alertas.ALERTAS_FILE = f
@@ -460,9 +460,9 @@ def test_alertas_verificar_matches():
 
 
 def test_alertas_sem_matches():
-    from data import alertas
-    from data.loader import carregar_leiloes
-    from data.analytics import para_dataframe
+    from app.leb.data import alertas
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe
     tmp, f = setup_alertas_tmp()
     try:
         alertas.ALERTAS_FILE = f
@@ -476,7 +476,7 @@ def test_alertas_sem_matches():
 
 
 def test_alertas_desconto_min():
-    from data import alertas
+    from app.leb.data import alertas
     tmp, f = setup_alertas_tmp()
     try:
         alertas.ALERTAS_FILE = f
@@ -487,7 +487,7 @@ def test_alertas_desconto_min():
 
 
 def test_alertas_apenas_novos():
-    from data import alertas
+    from app.leb.data import alertas
     tmp, f = setup_alertas_tmp()
     try:
         alertas.ALERTAS_FILE = f
@@ -498,7 +498,7 @@ def test_alertas_apenas_novos():
 
 
 def test_alertas_id_unico():
-    from data import alertas
+    from app.leb.data import alertas
     tmp, f = setup_alertas_tmp()
     try:
         alertas.ALERTAS_FILE = f
@@ -510,7 +510,7 @@ def test_alertas_id_unico():
 
 
 def test_alertas_json_corrupto_recupera():
-    from data import alertas
+    from app.leb.data import alertas
     tmp, f = setup_alertas_tmp()
     try:
         f.write_text("{ json corrompido", encoding="utf-8")
@@ -524,23 +524,23 @@ def test_alertas_json_corrupto_recupera():
 # ────── Geo (expandido) ──────
 
 def test_geo_coords_validas():
-    from data.geo_portugal import COORDENADAS_DISTRITOS
+    from app.leb.data.geo_portugal import COORDENADAS_DISTRITOS
     for d, (lat, lon) in COORDENADAS_DISTRITOS.items():
         assert -90 <= lat <= 90, f"lat inválida para {d}: {lat}"
         assert -180 <= lon <= 180, f"lon inválida para {d}: {lon}"
 
 
 def test_geo_coord_distrito():
-    from data.geo_portugal import coord_distrito
+    from app.leb.data.geo_portugal import coord_distrito
     if "Lisboa" in dir(__import__("data.geo_portugal", fromlist=["COORDENADAS_DISTRITOS"]).COORDENADAS_DISTRITOS):
         lat, lon = coord_distrito("Lisboa")
         assert lat is not None and lon is not None
 
 
 def test_geo_mapa_concelhos():
-    from data.geo_portugal import df_para_mapa_concelhos
-    from data.loader import carregar_leiloes
-    from data.analytics import agregado_por_concelho, para_dataframe
+    from app.leb.data.geo_portugal import df_para_mapa_concelhos
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import agregado_por_concelho, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     agg = agregado_por_concelho(df)
     if hasattr(__import__("data.geo_portugal", fromlist=["df_para_mapa_concelhos"]), "df_para_mapa_concelhos"):
@@ -552,7 +552,7 @@ def test_geo_mapa_concelhos():
 
 def test_bar_top_concelhos_vazio():
     """Com DataFrame vazio não deve crashar (retorna None ou Figure)."""
-    from data.dashboards import bar_top_concelhos
+    from app.leb.data.dashboards import bar_top_concelhos
     import pandas as pd
     empty = pd.DataFrame(columns=["concelho", "distrito", "total", "poupanca_total", "valor_minimo_total", "desconto_medio_pct"])
     fig = bar_top_concelhos(empty, top=10)
@@ -561,9 +561,9 @@ def test_bar_top_concelhos_vazio():
 
 
 def test_donut_categorias_filtro():
-    from data.dashboards import donut_categorias
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.dashboards import donut_categorias
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     df_f = aplicar_filtros(df, distritos=["Faro"])
     fig = donut_categorias(df_f)
@@ -571,21 +571,21 @@ def test_donut_categorias_filtro():
 
 
 def test_gauge_poupanca_zero():
-    from data.dashboards import gauge_poupanca
+    from app.leb.data.dashboards import gauge_poupanca
     fig = gauge_poupanca(0.0, 0.0)
     assert fig is not None
 
 
 def test_gauge_poupanca_max():
-    from data.dashboards import gauge_poupanca
+    from app.leb.data.dashboards import gauge_poupanca
     fig = gauge_poupanca(100.0, 9_999_999.0)
     assert fig is not None
 
 
 def test_dashboards_reativos_filtros():
-    from data.dashboards import donut_categorias
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.dashboards import donut_categorias
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     fig1 = donut_categorias(df)
     df_f = aplicar_filtros(df, distritos=["Faro"])
@@ -597,20 +597,20 @@ def test_dashboards_reativos_filtros():
 
 def test_tema_inject_css_idempotente():
     """inject_css pode ser chamado múltiplas vezes sem erro."""
-    from data.theme import inject_css, COLORS_DARK
+    from app.leb.data.theme import inject_css, COLORS_DARK
     inject_css(COLORS_DARK, True)
     inject_css(COLORS_DARK, True)  # segunda chamada não deve crashar
 
 
 def test_tema_widget_exports():
     """theme_toggle_widget está exportado."""
-    from data.theme import theme_toggle_widget
+    from app.leb.data.theme import theme_toggle_widget
     assert callable(theme_toggle_widget)
 
 
 def test_tema_cor_contraste():
     """Texto principal tem contraste suficiente com o fundo."""
-    from data.theme import COLORS_DARK, COLORS_LIGHT
+    from app.leb.data.theme import COLORS_DARK, COLORS_LIGHT
     # Pelo menos as 2 cores básicas existem
     assert COLORS_DARK["text"] != COLORS_DARK["canvas"]
     assert COLORS_LIGHT["text"] != COLORS_LIGHT["canvas"]
@@ -626,7 +626,7 @@ def test_loader_invalida_cache_real():
     esta versão apenas verifica que a função existe e não tem side-effects
     quando chamada sem cache.
     """
-    from data import loader
+    from app.leb.data import loader
     # Função deve existir e ser chamável
     assert callable(loader.invalidar_cache)
     # NÃO chamamos invalidar_cache() em condições normais para não quebrar outros testes.
@@ -635,7 +635,7 @@ def test_loader_invalida_cache_real():
 
 def test_loader_falha_sem_cache():
     """Verifica que carregar_leiloes() levanta LoaderError se não houver cache."""
-    from data.loader import carregar_leiloes, CACHE_REAL, LoaderError
+    from app.leb.data.loader import carregar_leiloes, CACHE_REAL, LoaderError
     # Apaga temporariamente
     backup = None
     if CACHE_REAL.exists():
@@ -654,8 +654,8 @@ def test_loader_falha_sem_cache():
 
 def test_loader_cabanas_tavira():
     """Verifica que Tavira (incluindo Cabanas) tem imóveis reais."""
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     tavira = aplicar_filtros(df, concelhos=["Tavira"], distritos=["Faro"], categorias=["Imóvel"])
     assert len(tavira) >= 1, f"Esperado >=1, obtido {len(tavira)}"
@@ -663,7 +663,7 @@ def test_loader_cabanas_tavira():
 
 def test_loader_distribuicao_categorias():
     """Verifica que a cache tem distribuição realista de categorias."""
-    from data.loader import carregar_leiloes
+    from app.leb.data.loader import carregar_leiloes
     items = carregar_leiloes()["items"]
     from collections import Counter
     cats = Counter(l["categoria"] for l in items)
@@ -675,8 +675,8 @@ def test_loader_distribuicao_categorias():
 
 def test_adversarial_valor_min_maior_max():
     """valor_min > valor_max deve dar vazio."""
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     df_f = aplicar_filtros(df, valor_min=1_000_000, valor_max=10)
     assert len(df_f) == 0
@@ -684,8 +684,8 @@ def test_adversarial_valor_min_maior_max():
 
 def test_adversarial_texto_caracteres_especiais():
     """Texto com caracteres especiais não deve crashar."""
-    from data.analytics import aplicar_filtros, para_dataframe
-    from data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
     df = para_dataframe(carregar_leiloes()["items"])
     df_f = aplicar_filtros(df, texto_livre="!@#$%^&*()")
     assert isinstance(df_f, type(df))
@@ -693,8 +693,8 @@ def test_adversarial_texto_caracteres_especiais():
 
 def test_adversarial_muitos_distritos():
     """Filtro com todos os 18 distritos."""
-    from data.analytics import aplicar_filtros, para_dataframe
-    from data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
     df = para_dataframe(carregar_leiloes()["items"])
     todos = ["Aveiro","Beja","Braga","Bragança","Castelo Branco","Coimbra",
              "Évora","Faro","Guarda","Leiria","Lisboa","Portalegre","Porto",
@@ -705,8 +705,8 @@ def test_adversarial_muitos_distritos():
 
 def test_adversarial_poupanca_pct_zero():
     """Itens com valor_avaliacao == valor_minimo devem ter poupança 0%."""
-    from data.analytics import aplicar_filtros, para_dataframe
-    from data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
     df = para_dataframe(carregar_leiloes()["items"])
     if "poupanca_pct" in df.columns:
         zeros = df[df["poupanca_pct"] == 0]
@@ -715,8 +715,8 @@ def test_adversarial_poupanca_pct_zero():
 
 def test_adversarial_datas_invalidas():
     """Dias ate encerramento com valores estranhos."""
-    from data.analytics import para_dataframe
-    from data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe
+    from app.leb.data.loader import carregar_leiloes
     df = para_dataframe(carregar_leiloes()["items"])
     if "dias_ate_encerramento" in df.columns:
         # Valores podem ser negativos (encerrados) ou positivos (futuros)
@@ -726,7 +726,7 @@ def test_adversarial_datas_invalidas():
 
 def test_adversarial_concurrent_load():
     """Múltiplas chamadas concorrentes devem retornar o mesmo número de items."""
-    from data.loader import carregar_leiloes
+    from app.leb.data.loader import carregar_leiloes
     import concurrent.futures
     def load():
         return len(carregar_leiloes()["items"])
@@ -739,8 +739,8 @@ def test_adversarial_concurrent_load():
 
 def test_integracao_end_to_end_filtro():
     """Pipeline: loader → filter → KPIs."""
-    from data.loader import carregar_leiloes
-    from data.analytics import aplicar_filtros, kpis_gerais, para_dataframe
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import aplicar_filtros, kpis_gerais, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     df_f = aplicar_filtros(df, distritos=["Faro"], categorias=["Imóvel"])
     k = kpis_gerais(df_f)
@@ -749,7 +749,7 @@ def test_integracao_end_to_end_filtro():
 
 def test_integracao_tema_alternar():
     """Alternar entre dark e light não deve crashar."""
-    from data.theme import COLORS_DARK, COLORS_LIGHT
+    from app.leb.data.theme import COLORS_DARK, COLORS_LIGHT
     p1 = COLORS_DARK["canvas"]
     p2 = COLORS_LIGHT["canvas"]
     assert p1 != p2
@@ -757,9 +757,9 @@ def test_integracao_tema_alternar():
 
 def test_integracao_dashboards_completos():
     """Todos os gráficos funcionam com dados reais."""
-    from data.dashboards import donut_categorias, bar_top_concelhos, gauge_poupanca
-    from data.loader import carregar_leiloes
-    from data.analytics import agregado_por_concelho, para_dataframe
+    from app.leb.data.dashboards import donut_categorias, bar_top_concelhos, gauge_poupanca
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import agregado_por_concelho, para_dataframe
     df = para_dataframe(carregar_leiloes()["items"])
     assert donut_categorias(df) is not None
     assert bar_top_concelhos(agregado_por_concelho(df), top=10) is not None
@@ -768,11 +768,11 @@ def test_integracao_dashboards_completos():
 
 def test_integracao_pipeline_completo():
     """Pipeline completo: load → df → filter → aggregate → dashboard."""
-    from data.loader import carregar_leiloes
-    from data.analytics import (para_dataframe, aplicar_filtros,
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import (para_dataframe, aplicar_filtros,
                                   agregado_por_concelho, kpis_gerais,
                                   top_oportunidades)
-    from data.dashboards import donut_categorias, bar_top_concelhos
+    from app.leb.data.dashboards import donut_categorias, bar_top_concelhos
     r = carregar_leiloes(usar_cache=True)
     assert r["fonte"] == "e-leilões.pt"
     df = para_dataframe(r["items"])

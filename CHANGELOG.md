@@ -64,7 +64,7 @@
 ## v0.4.2 — 2026-08-22 — Data quality + race condition hardening
 
 ### Added
-- `VALOR_SUSPEITO_RATIO_Nx` heuristic in `vendor/leiloes-pt-data/.../loader.py`
+- `VALOR_SUSPEITO_RATIO_Nx` heuristic in `app/leb/.../loader.py`
   - Detects bugs upstream where `valorBase` comes in cêntimos (e.g. Tábua imóvel 240.000M€)
   - Flags items with ratio `lance/min > 10x` with reason
 

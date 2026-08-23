@@ -36,21 +36,21 @@ Or `docker compose up` with the included `docker-compose.yml`.
 | `ALLOWED_ORIGINS` | `http://localhost:5180` | Comma-separated CORS origins |
 | `LOG_LEVEL` | `info` | uvicorn log level |
 | `CRAWLER_ENABLED` | `true` | Set `false` to skip vendor crawler (use cached data only) |
-| `DATA_DIR` | `./vendor/leiloes-pt-data/cache` | Where `leiloes_reais.json` + `alertas.db` live |
+| `DATA_DIR` | `./app/leb/cache` | Where `leiloes_reais.json` + `alertas.db` live |
 
 ## Data initialization
 
 On first run, you need to vendor the v3 Python data pipeline:
 
 ```bash
-git subtree add --prefix vendor/leiloes-pt-data \
+git subtree add --prefix app/leb \
   https://github.com/LegendaryLionMan/leiloes-pt.git main --squash
 ```
 
 Then run the crawler once:
 
 ```bash
-cd vendor/leiloes-pt-data
+cd app/leb
 python -m src.cli crawl --output cache/leiloes_reais.json
 ```
 
@@ -103,7 +103,7 @@ npm run api:install
 - [ ] `ALLOWED_ORIGINS` set to production domain
 - [ ] `LOG_LEVEL=warning` to reduce log volume
 - [ ] CSP `script-src` includes any inline bootstrap code
-- [ ] `vendor/leiloes-pt-data/` updated (subtree pull)
+- [ ] `app/leb/` updated (subtree pull)
 - [ ] Backups: cron copies `vendor/.../cache/alertas.db` to safe location
 - [ ] Health checks wired to monitoring
 - [ ] HSTS preload list (optional)

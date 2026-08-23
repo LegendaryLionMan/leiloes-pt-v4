@@ -50,16 +50,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
 
-# Vendor the v3 data layer onto sys.path so `data.*` resolves.
-VENDOR_PATH = Path(__file__).resolve().parent.parent.parent / "vendor" / "leiloes-pt-data"
-sys.path.insert(0, str(VENDOR_PATH))
-
-from data import loader, analytics  # noqa: E402 — vendored
-from data import geo_portugal as geo  # noqa: E402 — vendored
+# Data layer is a proper package: `app.leb` (was vendor/leiloes-pt-data,
+# Phase 15 reorg). Hyphen in the old directory name made it unreachable
+# as a Python module identifier — pytest-cov could not measure it. As a
+# proper package under app/, pytest-cov measures it normally and the
+# Phase 12 sys.path ordering hack is no longer needed.
+from app.leb.data import loader, analytics  # noqa: E402
+from app.leb.data import geo_portugal as geo  # noqa: E402
 
 
 # --- SQLite alerts DB (stdlib; no extra dep). Lives next to the cache. ----
-ALERT_DB = VENDOR_PATH / "cache" / "alertas.db"
+# app/leb/ is the canonical home; cache/ stays relative to the package.
+ALERT_DB = Path(__file__).resolve().parent.parent / "leb" / "cache" / "alertas.db"
 ALERT_DB.parent.mkdir(parents=True, exist_ok=True)
 
 

@@ -13,7 +13,7 @@ Lovable-style React + Vite + Tailwind dashboard for Portuguese government auctio
 - FastAPI + stdlib `sqlite3` for alerts (alerts.db)
 - Vendored Python data pipeline from v3 (e-leilões.pt crawler + analytics)
 
-**Local-first, no cloud.** SQLite alerts at `vendor/leiloes-pt-data/cache/alertas.db`, no Docker, no Supabase.
+**Local-first, no cloud.** SQLite alerts at `app/leb/cache/alertas.db`, no Docker, no Supabase.
 
 ## Quick start
 
@@ -27,7 +27,7 @@ npm run api:install
 npm run api
 
 # 3. Vendoring the v3 data layer
-git subtree add --prefix vendor/leiloes-pt-data \
+git subtree add --prefix app/leb \
   https://github.com/LegendaryLionMan/leiloes-pt.git main --squash
 ```
 
@@ -56,7 +56,7 @@ leiloes-pt-v4/
 │       ├── main.py          # /api/leiloes, /api/kpis, /api/alertas CRUD
 │       └── (no DB code — stdlib sqlite3 inlined in main.py)
 ├── vendor/
-│   └── leiloes-pt-data/     # Vendored v3 Python data layer (subtree)
+│   └── app/leb/     # Vendored v3 Python data layer (subtree)
 │       └── cache/           # leiloes_reais.json (crawler output) + alertas.db
 └── e2e/                     # Playwright tests (smoke + ui-ux-validation)
 ```
@@ -179,7 +179,7 @@ PYTHONPATH="" python -m pytest tests/   # 36 backend pytest tests + coverage HTM
 ```
 
 Current backend coverage: **70.7%** on `app/api/main` (417 stmts, threshold 70%).
-The vendored data pipeline (`vendor/leiloes-pt-data/`) is exercised by tests but
+The vendored data pipeline (`app/leb/`) is exercised by tests but
 not counted — the directory has hyphens which makes it unreachable as a Python
 module identifier for pytest-cov. Renaming is a Phase 15+ refactor.
 

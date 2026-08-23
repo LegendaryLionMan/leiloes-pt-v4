@@ -132,7 +132,7 @@ def test_atalho_tavira_continua_funcional():
 
 
 def test_loader_carregar_leiloes():
-    from data.loader import carregar_leiloes
+    from app.leb.data.loader import carregar_leiloes
     r = carregar_leiloes(usar_cache=True)
     assert isinstance(r, dict)
     assert "items" in r
@@ -141,8 +141,8 @@ def test_loader_carregar_leiloes():
 
 def test_kpis_gerais_keys():
     """kpis_gerais retorna dict com todas as keys esperadas."""
-    from data.loader import carregar_leiloes
-    from data.analytics import para_dataframe, kpis_gerais
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe, kpis_gerais
     df = para_dataframe(carregar_leiloes()["items"])
     k = kpis_gerais(df)
     for key in ("total_leiloes", "novos_24h", "valor_total_minimo", "poupanca_total_estimada",
@@ -152,14 +152,14 @@ def test_kpis_gerais_keys():
 
 def test_geo_distritos_presentes():
     """Coordenadas dos 18 distritos (Açores/Madeira removidos em 2026-06-21)."""
-    from data.geo_portugal import COORDENADAS_DISTRITOS
+    from app.leb.data.geo_portugal import COORDENADAS_DISTRITOS
     assert len(COORDENADAS_DISTRITOS) >= 18
 
 
 def test_heatmap_encerramentos():
-    from data.loader import carregar_leiloes
-    from data.analytics import para_dataframe
-    from data.heatmap import heatmap_encerramentos
+    from app.leb.data.loader import carregar_leiloes
+    from app.leb.data.analytics import para_dataframe
+    from app.leb.data.heatmap import heatmap_encerramentos
     df = para_dataframe(carregar_leiloes()["items"])
     m = heatmap_encerramentos(df)
     # Pode ser vazio se não há encerramentos nas próximas 8 semanas
@@ -168,7 +168,7 @@ def test_heatmap_encerramentos():
 
 def test_alertas_persistem():
     """Alertas gravam em JSON."""
-    from data import alertas as a
+    from app.leb.data import alertas as a
     # guarda o path original e restaura no fim (outros testes podem ter mudado)
     original_file = a.ALERTAS_FILE
     try:
@@ -214,7 +214,7 @@ def test_viewport_meta_tem_maximum_scale_5():
 
 def test_theme_cor_brand_consistente():
     """COLORS_BRAND == '#5e6ad2' (Linear purple)."""
-    from data.theme import COLORS_BRAND
+    from app.leb.data.theme import COLORS_BRAND
     assert COLORS_BRAND == "#5e6ad2"
 
 

@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from data.loader import carregar_leiloes
-from data.analytics import (
+from app.leb.data.loader import carregar_leiloes
+from app.leb.data.analytics import (
     para_dataframe, kpis_gerais, novos_ultimas_24h,
     agregado_por_categoria, aplicar_filtros
 )

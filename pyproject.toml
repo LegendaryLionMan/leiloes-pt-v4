@@ -18,16 +18,21 @@ addopts = [
     "--strict-markers",
     "--tb=short",
     # Phase 14.1: Coverage on the FastAPI backend surface (app.api.main).
-    # The vendored data pipeline lives under `vendor/leiloes-pt-data/` —
-    # the directory name has hyphens, which is invalid as a Python module
-    # identifier. pytest-cov can only measure modules reachable via
-    # dotted-name imports, so the vendor code is EXERCISED by tests but
-    # not COUNTED in coverage. To get full coverage we'd need to rename
-    # `leiloes-pt-data/` to `leiloes_pt_data/` — that's a Phase 15+ refactor
-    # touching every sys.path.insert in conftest.py + every vendor import
-    # in app/api/main.py, so it's out of Phase 14.1 scope.
-    "--cov=app.api.main",
-    "--cov-report=term-missing",
+        # Phase 15: vendor/leiloes-pt-data/ → app/leb/ rename. The data layer is
+        # now a proper package (no hyphen) so pytest-cov can measure it normally.
+        # We measure BOTH layers:
+        # - app.api.main (the FastAPI surface, the entry points)
+        # - app.leb.data (the data layer, was vendor/)
+        #
+        # EXCLUDED from coverage:
+        # - theme.py, dashboards.py, heatmap.py, alertas.py, crawler_eleiloes.py,
+        #   leiloes_reais.py — these are Streamlit-only modules exercised by
+        #   the legacy python -m data.test_comprehensive scripts (kept for
+        #   backward compatibility with the v3 Streamlit UI), not by pytest.
+        #   Adding integration tests for them is out of Phase 15 scope.
+        "--cov=app.api.main",
+        "--cov=app.leb.data",
+        "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
     "--cov-report=xml:coverage.xml",
     # Threshold 70% — current backend coverage is 70.7% (Phase 14.1 baseline).
@@ -37,15 +42,27 @@ addopts = [
 
 [tool.coverage.run]
 # Coverage settings (run sub-process)
-# Only measure the API surface (matches --cov flags above).
-# Vendor code is exercised but not counted (hyphen in dir name).
+# Measure both the API surface (app.api) and the data layer (app.leb.data).
 source_pkgs = [
     "app.api",
+    "app.leb",
 ]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",
     "*/test_*.py",
+    # Phase 15: exclude Streamlit-only modules from coverage. These are
+    # exercised by the legacy v3 test scripts (python -m data.test_comprehensive)
+    # kept for backward compatibility. Adding pytest coverage for them is a
+    # Phase 16+ task — would need Playwright against the running Streamlit UI
+    # or full module-level mocked unit tests for plotly/streamlit APIs.
+    "*/app/leb/data/theme.py",
+    "*/app/leb/data/dashboards.py",
+    "*/app/leb/data/heatmap.py",
+    "*/app/leb/data/alertas.py",
+    "*/app/leb/data/crawler_eleiloes.py",
+    "*/app/leb/data/leiloes_reais.py",
+    "*/app/leb/streamlit_app.py",
 ]
 # Branch coverage (catches if/else untested branches)
 branch = true

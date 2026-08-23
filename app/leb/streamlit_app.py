@@ -11,14 +11,14 @@ import plotly.graph_objects as go
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 
-from data import loader, analytics, theme, dashboards as dash, geo_portugal, heatmap as heatmap_mod, alertas
-from data.theme import (
+from app.leb.data import loader, analytics, theme, dashboards as dash, geo_portugal, heatmap as heatmap_mod, alertas
+from app.leb.data.theme import (
     COLORS_DARK, COLORS_LIGHT, COLORS_BRAND,
     inject_css, render_pwa, render_mobile_meta, render_microdata,
     theme_toggle_widget, theme_is_dark, build_kpi_card_html,
     build_section_title_html, build_banner_html,
 )
-from data.alertas import (
+from app.leb.data.alertas import (
     criar_alerta, carregar_alertas, eliminar_alerta, toggle_alerta,
 )
 
