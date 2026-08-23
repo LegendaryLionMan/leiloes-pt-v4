@@ -17,7 +17,7 @@ Run: cd C:/Users/lion_/projetos/leiloes-pt-v4 && python -m pytest tests/test_dat
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.leb.data import loader
 
@@ -78,12 +78,14 @@ def test_valor_suspeito_threshold_is_exactly_10x() -> None:
 
 def test_dias_ate_parses_iso8601_correctly() -> None:
     """PASS: _dias_ate() parses ISO-8601 with Z suffix (UTC) and returns int days."""
-    # Future date = positive days
-    future = (datetime.utcnow() + timedelta(days=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Phase 17: use timezone-aware datetime.now(timezone.utc) instead of
+    # deprecated datetime.utcnow(). Behavior identical on Python 3.11 (today)
+    # but pre-empts DeprecationWarning in 3.13+ transition.
+    future = (datetime.now(timezone.utc) + timedelta(days=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
     dias = loader._dias_ate(future)
     assert 9 <= dias <= 10, f"future date should be 9-10 days, got {dias}"
     # Past date = negative days (already closed)
-    past = (datetime.utcnow() - timedelta(days=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    past = (datetime.now(timezone.utc) - timedelta(days=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
     dias = loader._dias_ate(past)
     assert -6 <= dias <= -5, f"past date should be -5 to -6 days, got {dias}"
 

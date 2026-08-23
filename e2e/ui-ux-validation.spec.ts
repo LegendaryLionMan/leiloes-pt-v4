@@ -9,7 +9,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const SPA = 'http://127.0.0.1:5180';
-const API = 'http://127.0.0.1:8001/api';
+// Phase 17: backend port from env var. Default 9001 keeps dev workflow
+// unchanged. Override via `BACKEND_PORT=8001 npx playwright test` etc.
+const BACKEND_PORT = process.env.BACKEND_PORT || '9001';
+const API = `http://127.0.0.1:${BACKEND_PORT}/api`;
 
 // ---------- formatters that EXACTLY mirror src/lib/ui.tsx + Lista.tsx ----------
 const fmtEUR = new Intl.NumberFormat('pt-PT', {
@@ -831,7 +834,7 @@ test('DATA — SQLite alertas busy_timeout aplicado (>= 5000ms)', async () => {
     active: true,
   });
   const reqs = Array.from({length: 5}, () =>
-    fetch('http://127.0.0.1:8001/api/alertas', {
+    fetch('http://127.0.0.1:9001/api/alertas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
@@ -841,10 +844,10 @@ test('DATA — SQLite alertas busy_timeout aplicado (>= 5000ms)', async () => {
   const ok = responses.filter(r => r.status === 200 || r.status === 201).length;
   expect(ok, `${ok}/5 alertas criados com sucesso (sem 500 ou timeout)`).toBeGreaterThanOrEqual(4);
   // Limpa
-  const list = await (await fetch('http://127.0.0.1:8001/api/alertas')).json();
+  const list = await (await fetch('http://127.0.0.1:9001/api/alertas')).json();
   for (const a of list.items) {
     if (a.name === 'Test race condition') {
-      await fetch(`http://127.0.0.1:8001/api/alertas/${a.id}`, { method: 'DELETE' });
+      await fetch(`http://127.0.0.1:9001/api/alertas/${a.id}`, { method: 'DELETE' });
     }
   }
 });
