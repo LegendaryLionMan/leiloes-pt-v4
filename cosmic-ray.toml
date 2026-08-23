@@ -1,0 +1,23 @@
+[cosmic-ray]
+# Phase 16 mutation testing config.
+# Targets the data loader (68 stmts, critical to all KPIs shown in the UI).
+
+module-path = "app/leb/data/loader.py"
+
+# Windows note: cosmic-ray's subprocess invocation breaks with these
+# string-form args — see Phase 16 commit msg. Works on linux/macOS as-is.
+# For local Windows runs, prefix the test-command with PYTHONPATH= (empty
+# path so project root takes priority) and use forward slashes.
+python = "python"
+test-command = "PYTHONPATH= python -m pytest tests/test_data_loader.py -x -q"
+timeout = 30.0
+
+[cosmic-ray.exclude]
+glob = ["**/__pycache__/**"]
+
+[cosmic-ray.distributor]
+name = "local"
+
+[cosmic-ray.mutators]
+# Phase 16: use the built-in mutator set (covers Arithmetic, Boolean,
+# Comparison, etc.). Default operators.

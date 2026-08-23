@@ -170,6 +170,23 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for full endpoint catalog with auth, cach
 
 ## Testing
 
+### Mutation testing (Phase 16)
+
+```bash
+# Prerequisites (Linux/macOS): pip install mutmut cosmic-ray
+# Windows: mutmut refuses to run natively — use WSL, Linux runner, or Docker.
+#           Tracked upstream at https://github.com/boxed/mutmut/issues/397
+
+bash scripts/mutation-test.sh              # default = app/leb/data/loader.py
+bash scripts/mutation-test.sh loader       # data loader (68 stmts, ~5min)
+bash scripts/mutation-test.sh analytics    # analytics (147 stmts, ~15min)
+bash scripts/mutation-test.sh geo          # geo_portugal (27 stmts, ~2min)
+```
+
+Mutations that survive (test suite still passes after the mutation is applied)
+are real test gaps. Each surviving mutant is a specific assertion to add next.
+
+
 ### Locally
 ```bash
 npm run test:e2e              # 58 Playwright tests + 1 skipped (frontend e2e)
