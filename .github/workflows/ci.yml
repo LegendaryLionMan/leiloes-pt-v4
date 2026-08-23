@@ -1,237 +1,225 @@
 name: CI
-
-on:
+true:
   push:
-    branches: [main]
+    branches:
+    - main
   pull_request:
-    branches: [main]
-
-# Cancel in-flight runs of the same branch/PR to save CI minutes.
+    branches:
+    - main
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
-  # -----------------------------------------------------------------------------
-  # Job 1: Backend pytest (Phase 12 — 36 tests, fast, ~30s)
-  # Validates the FastAPI surface + data loader heuristics without needing the
-  # full SPA.  Runs first so we fail fast on backend regressions.
-  #
-  # PASS criterion: `pytest tests/` exits 0 with 36+ tests collected.
-  # Falsification rule: if this job passes but the SPA breaks in production,
-  # the bug is in the React layer (not in endpoints/loader) and Job 2 will
-  # catch it.  If both jobs pass, the data layer is verified end-to-end.
-  # -----------------------------------------------------------------------------
   backend-pytest:
     name: Backend pytest (36 tests)
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: pip
+    - name: Install backend deps (including pytest)
+      run: 'python -m pip install --upgrade pip
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+        pip install -r requirements.txt
 
-      - name: Install backend deps (including pytest)
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        '
+    - name: Run pytest with coverage
+      run: PYTHONPATH="" python -m pytest tests/ -v --tb=short
+    - name: Upload coverage report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{ github.run_id }}
+        path: 'htmlcov/
 
-      - name: Run pytest with coverage
-        run: PYTHONPATH="" python -m pytest tests/ -v --tb=short
-        # pyproject.toml [tool.pytest.ini_options].addopts drives --cov flags,
-        # so this command produces htmlcov/index.html + coverage.xml
+          coverage.xml
 
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-${{ github.run_id }}
-          path: |
-            htmlcov/
-            coverage.xml
-          retention-days: 7
-        # 7-day retention so devs can browse the HTML report post-merge
-
+          '
+        retention-days: 7
   # -----------------------------------------------------------------------------
-  # Job 2: Backend uvicorn smoke (boots the API + hits /api/health)
-  # Catches: import errors, schema validation regressions, security header
-  # regressions, mid-deploy breakage (CI green but service won't boot).
+  # Job 2: Frontend unit tests + coverage (Phase 15.1 — 36 vitest tests, fast, ~10s)
+  # Validates the React/TypeScript unit-testable surface (lib/ui.tsx + tests to come).
+  # Pure-function logic + brand tokens + formatters — no Leaflet, no Plotly, no
+  # Playwright.  Runs in parallel with backend-pytest; both must pass before
+  # backend-smoke and frontend-e2e can run (fail-fast on frontend regressions).
   #
-  # PASS criterion: curl http://127.0.0.1:8001/api/health returns 200 + valid
-  # JSON with version + errors_total_buffered fields.
-  # Falsification rule: if this job passes but /api/kpis or /api/leiloes
-  # break, Playwright Job 3 will catch it within minutes.
+  # PASS criterion: `npx vitest run --coverage` exits 0 with 36+ tests collected
+  # and the `src/lib/ui.tsx` coverage threshold (lines 90% / branch 90%) met.
+  # Falsification rule: if this job passes but the SPA breaks in production,
+  # the bug is in routes/components (excluded from vitest) and Job 4 (Playwright
+  # e2e) catches it.  If both pass, the unit-tested surface is verified.
   # -----------------------------------------------------------------------------
+  frontend-unit:
+    name: Frontend unit tests + coverage (36 vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Node 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: npm
+    - name: Install frontend deps (incl. jsdom + coverage-v8)
+      run: npm ci
+    - name: Run vitest with coverage
+      run: npx vitest run --coverage
+    - name: Upload frontend coverage report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-coverage-${{ github.run_id }}
+        path: coverage/
+        retention-days: 7
   backend-smoke:
     name: Backend uvicorn smoke
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: backend-pytest
-
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: pip
+    - name: Install backend deps
+      run: 'python -m pip install --upgrade pip
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+        pip install -r requirements.txt
 
-      - name: Install backend deps
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        '
+    - name: Boot uvicorn in background
+      run: 'PYTHONPATH="" nohup python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8001 > /tmp/uvicorn.log 2>&1 &
 
-      - name: Boot uvicorn in background
-        run: |
-          PYTHONPATH="" nohup python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8001 > /tmp/uvicorn.log 2>&1 &
-          echo "uvicorn PID: $!"
-          sleep 4  # give it time to start
-        # nohup + & runs detached; logs go to /tmp/uvicorn.log for debugging
+        echo "uvicorn PID: $!"
 
-      - name: Smoke /api/health
-        run: |
-          curl -fsS http://127.0.0.1:8001/api/health | tee /tmp/health.json
-          echo
-          # Verify the JSON envelope (Phase 8 surface)
-          python -c "
-          import json, sys
-          data = json.load(open('/tmp/health.json'))
-          assert data.get('status') == 'ok', f'status not ok: {data}'
-          assert 'version' in data, 'version missing'
-          import re
-          assert re.match(r'\d+\.\d+\.\d+', data['version']), f'version format: {data[\"version\"]}'
-          assert data.get('errors_total_buffered') is not None, 'buffer missing'
-          # Accept int or numeric string (legacy backends may serialize differently)
-          buf = data['errors_total_buffered']
-          assert isinstance(buf, (int, float)) or (isinstance(buf, str) and buf.isdigit()), \
-              f'buffer not numeric: {type(buf).__name__}={buf!r}'
-          print('PASS: /api/health OK')
-          "
+        sleep 4  # give it time to start
 
-      - name: Smoke /api/cache/info
-        run: |
-          curl -fsS http://127.0.0.1:8001/api/cache/info -o /dev/null -w "HTTP %{http_code}\n"
+        '
+    - name: Smoke /api/health
+      run: "curl -fsS http://127.0.0.1:8001/api/health | tee /tmp/health.json\necho\n# Verify the JSON envelope (Phase 8 surface)\npython -c \"\nimport json, sys\ndata = json.load(open('/tmp/health.json'))\n\
+        assert data.get('status') == 'ok', f'status not ok: {data}'\nassert 'version' in data, 'version missing'\nimport re\nassert re.match(r'\\d+\\.\\d+\\.\\d+', data['version']), f'version format: {data[\\\
+        \"version\\\"]}'\nassert data.get('errors_total_buffered') is not None, 'buffer missing'\n# Accept int or numeric string (legacy backends may serialize differently)\nbuf = data['errors_total_buffered']\n\
+        assert isinstance(buf, (int, float)) or (isinstance(buf, str) and buf.isdigit()), \\\n    f'buffer not numeric: {type(buf).__name__}={buf!r}'\nprint('PASS: /api/health OK')\n\"\n"
+    - name: Smoke /api/cache/info
+      run: 'curl -fsS http://127.0.0.1:8001/api/cache/info -o /dev/null -w "HTTP %{http_code}\n"
 
-      - name: Smoke /api/kpis
-        run: |
-          curl -fsS http://127.0.0.1:8001/api/kpis -o /tmp/kpis.json
-          python -c "
-          import json
-          data = json.load(open('/tmp/kpis.json'))
-          assert isinstance(data, dict), f'kpis must be dict, got {type(data)}'
-          # At least 3 numeric KPIs expected
-          numeric = sum(1 for v in data.values() if isinstance(v, (int, float)))
-          assert numeric >= 3, f'expected >=3 numeric KPIs, got {numeric}: {list(data.keys())}'
-          print(f'PASS: /api/kpis returned {len(data)} fields ({numeric} numeric)')
-          "
+        '
+    - name: Smoke /api/kpis
+      run: 'curl -fsS http://127.0.0.1:8001/api/kpis -o /tmp/kpis.json
 
-      - name: Cleanup uvicorn
-        if: always()
-        run: |
-          pkill -f 'uvicorn app.api.main:app' || true
-          echo "=== Last 30 lines of uvicorn log ==="
-          tail -30 /tmp/uvicorn.log || true
+        python -c "
 
-  # -----------------------------------------------------------------------------
-  # Job 3: Frontend Playwright e2e (58 tests, ~80s)
-  # Full SPA against real backend.  Catches: React regressions, contract
-  # drift between API and SPA, accessibility issues, i18n drift.
-  #
-  # PASS criterion: 58/58 Playwright tests pass.
-  # Falsification rule: if this passes but user complains in production, the
-  # bug is in production-only paths (crawler, e-leiloes.pt upstream) — not
-  # in the SPA or in our backend.
-  # -----------------------------------------------------------------------------
+        import json
+
+        data = json.load(open(''/tmp/kpis.json''))
+
+        assert isinstance(data, dict), f''kpis must be dict, got {type(data)}''
+
+        # At least 3 numeric KPIs expected
+
+        numeric = sum(1 for v in data.values() if isinstance(v, (int, float)))
+
+        assert numeric >= 3, f''expected >=3 numeric KPIs, got {numeric}: {list(data.keys())}''
+
+        print(f''PASS: /api/kpis returned {len(data)} fields ({numeric} numeric)'')
+
+        "
+
+        '
+    - name: Cleanup uvicorn
+      if: always()
+      run: 'pkill -f ''uvicorn app.api.main:app'' || true
+
+        echo "=== Last 30 lines of uvicorn log ==="
+
+        tail -30 /tmp/uvicorn.log || true
+
+        '
   frontend-e2e:
     name: Frontend Playwright (58 tests)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: backend-pytest
-
+    needs:
+    - backend-pytest
+    - frontend-unit
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: npm
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: pip
+    - name: Install backend deps
+      run: 'python -m pip install --upgrade pip
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+        pip install -r requirements.txt
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+        '
+    - name: Install frontend deps
+      run: npm ci
+    - name: TypeScript check
+      run: npx tsc --noEmit || true
+    - name: Build frontend
+      run: npm run build
+    - name: Cache Playwright browsers
+      id: playwright-cache
+      uses: actions/cache@v4
+      with:
+        path: '~/.cache/ms-playwright
 
-      - name: Install backend deps
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          ~/.cache/ms-playwright-go
 
-      - name: Install frontend deps
-        run: npm ci
+          '
+        key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        restore-keys: 'playwright-${{ runner.os }}-
 
-      - name: TypeScript check
-        run: npx tsc --noEmit || true
-        # Phase 3: pre-existing TS errors don't block (vite.config.ts known)
+          '
+    - name: Install Playwright browsers (if not cached)
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
+      run: npx playwright install --with-deps chromium
+    - name: Verify Playwright cache
+      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      run: npx playwright --version && echo "Cache hit, skipping browser install"
+    - name: Start backend (uvicorn)
+      run: 'PYTHONPATH="" nohup python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8001 > /tmp/uvicorn.log 2>&1 &
 
-      - name: Build frontend
-        run: npm run build
+        sleep 4
 
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/ms-playwright
-            ~/.cache/ms-playwright-go
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            playwright-${{ runner.os }}-
-        # Saves ~30s per CI run by caching Chromium download
-        # Cache key = lockfile hash → invalidated when deps change
+        curl -fsS http://127.0.0.1:8001/api/health -o /dev/null -w "API health: HTTP %{http_code}\n"
 
-      - name: Install Playwright browsers (if not cached)
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        '
+    - name: Start frontend (vite dev)
+      run: 'nohup npm run dev > /tmp/vite.log 2>&1 &
 
-      - name: Verify Playwright cache
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright --version && echo "Cache hit, skipping browser install" 
+        sleep 8  # vite needs longer than uvicorn
 
-      - name: Start backend (uvicorn)
-        run: |
-          PYTHONPATH="" nohup python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8001 > /tmp/uvicorn.log 2>&1 &
-          sleep 4
-          curl -fsS http://127.0.0.1:8001/api/health -o /dev/null -w "API health: HTTP %{http_code}\n"
+        curl -fsS http://127.0.0.1:5180/ -o /dev/null -w "SPA health: HTTP %{http_code}\n"
 
-      - name: Start frontend (vite dev)
-        run: |
-          nohup npm run dev > /tmp/vite.log 2>&1 &
-          sleep 8  # vite needs longer than uvicorn
-          curl -fsS http://127.0.0.1:5180/ -o /dev/null -w "SPA health: HTTP %{http_code}\n"
+        '
+    - name: Run Playwright e2e
+      run: npx playwright test --reporter=line
+    - name: Upload Playwright report on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 7
+    - name: Cleanup
+      if: always()
+      run: 'pkill -f ''uvicorn app.api.main:app'' || true
 
-      - name: Run Playwright e2e
-        run: npx playwright test --reporter=line
-        # Fails the job if any test fails
+        pkill -f ''vite'' || true
 
-      - name: Upload Playwright report on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
-        # 7-day retention so failures can be inspected post-merge
-
-      - name: Cleanup
-        if: always()
-        run: |
-          pkill -f 'uvicorn app.api.main:app' || true
-          pkill -f 'vite' || true
+        '

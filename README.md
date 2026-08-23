@@ -173,9 +173,11 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for full endpoint catalog with auth, cach
 ### Locally
 ```bash
 npm run test:e2e              # 58 Playwright tests + 1 skipped (frontend e2e)
-PYTHONPATH="" python -m pytest tests/   # 36 backend pytest tests + coverage HTML
+npm run test:run              # 36 vitest unit tests + coverage (src/lib/ui.tsx)
+PYTHONPATH="" python -m pytest tests/   # 61 backend pytest tests + coverage HTML
 # → htmlcov/index.html (browser-openable coverage report)
 # → coverage.xml (Cobertura format for CI)
+# → coverage/index.html (vitest HTML coverage, src/lib/ui.tsx)
 ```
 
 Current backend coverage: **70.7%** on `app/api/main` (417 stmts, threshold 70%).

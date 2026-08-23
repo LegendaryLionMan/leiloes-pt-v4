@@ -34,3 +34,7 @@ htmlcov/
 coverage.xml
 # Phase 14.1 coverage artifacts
 .coverage
+
+# Phase 15.1 frontend coverage
+coverage/
+
