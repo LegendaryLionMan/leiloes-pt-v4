@@ -1,12 +1,9 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-// Phase 17: backend port comes from env var so the orphan-port issue
-// (a stale backend holding :8001 with a different version) can be bypassed
-// by running on a different port. Default 9001 keeps the dev workflow
-// unchanged when the env var isn't set.
-const BACKEND_PORT = process.env.BACKEND_PORT || '9001';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
@@ -16,14 +13,8 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5180,
+    port: 3000,
     host: '0.0.0.0',
-    proxy: {
-      '/api': {
-        target: `http://127.0.0.1:${BACKEND_PORT}`,
-        changeOrigin: true,
-      },
-    },
   },
   test: {
     globals: true,

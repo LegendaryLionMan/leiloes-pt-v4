@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 export default function Alertas() {
   const qc = useQueryClient();
   const [showInactive, setShowInactive] = useState(false);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const alerts = useQuery({
     queryKey: ['alertas', 'page'],
     queryFn: () => fetchAlertas(false),
@@ -111,15 +112,36 @@ export default function Alertas() {
                     {a.active ? <BellOff size={14} /> : <Bell size={14} />}
                     {a.active ? 'Desativar' : 'Ativar'}
                   </button>
-                  <button
-                    onClick={() => {
-                      if (confirm(`Apagar alerta "${a.name}"?`)) remove.mutate(a.id);
-                    }}
-                    className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 min-h-[36px] min-w-[36px] flex items-center justify-center"
-                    aria-label="Apagar alerta"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {confirmingDeleteId === a.id ? (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          remove.mutate(a.id);
+                          setConfirmingDeleteId(null);
+                        }}
+                        className="px-2.5 py-1 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700 min-h-[36px] transition-colors"
+                      >
+                        Confirmar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingDeleteId(null)}
+                        className="px-2 py-1 text-xs font-medium rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 min-h-[36px] transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingDeleteId(a.id)}
+                      className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 min-h-[36px] min-w-[36px] flex items-center justify-center transition-colors"
+                      aria-label={`Apagar alerta ${a.name}`}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               </Card>
             );

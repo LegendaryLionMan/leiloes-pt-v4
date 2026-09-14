@@ -199,11 +199,11 @@ export default function App() {
       
           </Link>
 
+          <LanguageSwitcher />
+
           <ThemeToggle />
         </div>
-      
-              <LanguageSwitcher />
-            </header>
+      </header>
 
       <div className="flex flex-1">
         {/* Sidebar */}

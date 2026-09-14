@@ -1,0 +1,6 @@
+{
+  "name": "Leilões Portugal — Painel",
+  "description": "Painel de leilões em Portugal com listagem, mapa, visualizações e alertas",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

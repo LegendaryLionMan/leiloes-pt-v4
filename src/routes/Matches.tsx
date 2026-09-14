@@ -17,7 +17,7 @@ export default function Matches() {
             <Sparkles size={24} className="text-amber-500" /> Matches
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {t("ui.matches_summary_caption")}al.
+            {t("ui.matches_summary_caption")}
           </p>
         </div>
         <Link

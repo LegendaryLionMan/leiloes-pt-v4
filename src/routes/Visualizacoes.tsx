@@ -28,13 +28,14 @@ export default function Visualizacoes() {
 
   // Sync drill.categoria ↔ URL ?cat=X (partilhável / bookmarkable)
   useEffect(() => {
-    if (drill.categoria) {
+    const currentCat = searchParams.get('cat');
+    if (drill.categoria && currentCat !== drill.categoria) {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.set('cat', drill.categoria!);
         return next;
       }, { replace: true });
-    } else if (searchParams.has('cat')) {
+    } else if (!drill.categoria && currentCat !== null) {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.delete('cat');
@@ -49,21 +50,10 @@ export default function Visualizacoes() {
     queryFn: () => fetchEstados({ distrito: drill.distrito ? [drill.distrito] : [], categoria: drill.categoria ? [drill.categoria] : [] }),
   });
 
-  const [aggCatState, setAggCatState] = useState<{ data?: any; loading: boolean; error: boolean }>(
-    { loading: true, error: false }
-  );
-  useEffect(() => {
-    let alive = true;
-    fetchAggCategoria()
-      .then((d) => alive && setAggCatState({ data: d, loading: false, error: false }))
-      .catch(() => alive && setAggCatState({ data: undefined, loading: false, error: true }));
-    return () => { alive = false; };
-  }, []);
-  const aggCat = {
-    isLoading: aggCatState.loading,
-    isError: aggCatState.error,
-    data: aggCatState.data,
-  };
+  const aggCat = useQuery({
+    queryKey: ['agg-cat', drill.distrito],
+    queryFn: () => fetchAggCategoria(drill.distrito ? [drill.distrito] : undefined),
+  });
   const aggDist = useQuery({ queryKey: ['agg-dist'], queryFn: fetchAggDistrito });
   // (replaced by timeline endpoint)
   const timeline = useQuery({ queryKey: ['timeline', drill.distrito, drill.categoria], queryFn: () => fetchTimeline({ distrito: drill.distrito ? [drill.distrito] : [], categoria: drill.categoria ? [drill.categoria] : [] }) });

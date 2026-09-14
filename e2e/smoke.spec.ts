@@ -1,7 +1,7 @@
 // Smoke E2E test for leiloes-pt v4 — verifies the critical user paths.
 import { test, expect } from '@playwright/test';
 
-const BASE = 'http://127.0.0.1:5180';
+const BASE = process.env.TEST_URL || 'http://127.0.0.1:3000';
 
 test.describe('leiloes-pt v4 smoke', () => {
   test('home page loads with KPIs', async ({ page }) => {

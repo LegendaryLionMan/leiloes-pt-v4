@@ -8,11 +8,10 @@ import { test, expect, Page } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const SPA = 'http://127.0.0.1:5180';
-// Phase 17: backend port from env var. Default 9001 keeps dev workflow
-// unchanged. Override via `BACKEND_PORT=8001 npx playwright test` etc.
-const BACKEND_PORT = process.env.BACKEND_PORT || '9001';
-const API = `http://127.0.0.1:${BACKEND_PORT}/api`;
+const SPA = process.env.TEST_URL || 'http://127.0.0.1:3000';
+// Phase 17: backend port from env var. Default 3000 for unified full-stack server
+const BACKEND_PORT = process.env.BACKEND_PORT || '3000';
+const API = process.env.API_URL || `${SPA}/api`;
 
 // ---------- formatters that EXACTLY mirror src/lib/ui.tsx + Lista.tsx ----------
 const fmtEUR = new Intl.NumberFormat('pt-PT', {
